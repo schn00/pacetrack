@@ -161,6 +161,21 @@ details[open] > summary .pm::before { content: '−'; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
 [hidden] { display: none !important; }
+.lab { display: inline-flex; align-items: center; min-height: 24px; padding: 0 8px; border-radius: 7px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.lab-great { background: var(--g1); color: var(--on-accent); }
+.lab-good { background: color-mix(in srgb, var(--g1) 18%, transparent); color: var(--g1); }
+.lab-typical { background: var(--soft); color: var(--muted); }
+.lab-rough { background: color-mix(in srgb, var(--g3) 20%, transparent); color: var(--orange); }
+.lab-bad { background: var(--orange); color: var(--on-accent); }
+.lab-none { background: var(--soft); color: var(--faint); font-weight: 500; }
+.score-card { display: flex; flex-direction: column; gap: 10px; }
+.score-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.score-num { font: 500 40px/1 var(--mono); }
+.score-num small { font-size: 15px; color: var(--muted); }
+.why { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.why div { display: flex; gap: 8px; align-items: baseline; }
+.why div::before { content: ''; width: 6px; height: 6px; border-radius: 3px; background: var(--g2); flex-shrink: 0; transform: translateY(-2px); }
+.auto-tag { font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 5px; background: var(--blue-soft); color: var(--blue); margin-left: 6px; vertical-align: 2px; }
 .map-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 10px; align-items: center; border-top: 1px solid var(--soft); padding-top: 10px; }
 .map-src { display: flex; flex-direction: column; min-width: 0; }
 .map-src b { font-weight: 500; font-size: 14px; overflow-wrap: anywhere; }
@@ -318,7 +333,7 @@ async function renderLog(app, existing) {
     cond: {}, routeId: (all.find(r => !r.indoor && r.routeId) || {}).routeId || '', surface: (all.find(r => r.surface && r.surface !== 'Treadmill') || {}).surface || 'Road', shoesId: last ? last.shoesId || '' : '', sick: false, notes: ''
   };
   form._startedTouched = !!existing;
-  form._feltTouched = false; form._startedEdited = false;
+  form._feltTouched = false; form._startedEdited = false; form._condEdited = new Set(); form._condAuto = !!(existing && existing.weatherSource === 'auto');
   if (form.felt == null) form.felt = 5;
   form._lastOutdoor = form.surface !== 'Treadmill' ? form.surface : 'Road';
   const startDate = existing ? new Date(existing.started) : new Date();
@@ -380,7 +395,7 @@ async function renderLog(app, existing) {
           <label class="label">Dew point °F<input class="input soft" data-cond="dew" inputmode="decimal" value="${esc(form.cond.dew ?? '')}"></label>
           <label class="label">Elevation ft<input class="input soft" data-cond="elev" inputmode="numeric" id="f-elev" value="${esc(form.cond.elev ?? '')}"></label>
         </div>
-        <div class="hint">Weather will fill in automatically in a later update. Elevation comes from your route if you leave it blank.</div>
+        <div class="hint" id="cond-status">Weather fills in from your start time and location. Elevation comes from your route if you leave it blank.</div>
         </div>
       </div>
     </details>
@@ -415,6 +430,7 @@ async function renderLog(app, existing) {
   fillSelects();
   bindLog(app, existing);
   syncIndoor();
+  if (!existing || (!existing.timeUnknown && !existing.indoor && (!existing.cond || existing.cond.temp == null))) queueWeather(300);
   updateLogSummaries();
 }
 
@@ -442,12 +458,32 @@ function paintEffort() {
   $('#felt-val').textContent = n; $('#felt-val').parentNode.style.color = c;
   const w = $('#felt-word'); w.textContent = EFFORT_WORDS[n - 1]; w.style.color = c; w.style.background = c + '26';
 }
+let wxTimer;
+function queueWeather(delay = 700) { clearTimeout(wxTimer); wxTimer = setTimeout(autoWeather, delay); }
+async function autoWeather() {
+  if (!form || form.surface === 'Treadmill') return;
+  const when = new Date($('#f-started').value); if (isNaN(when) || when > new Date(Date.now() + 36e5)) return;
+  const st = $('#cond-status');
+  try {
+    st.textContent = 'Getting weather…';
+    const w = await fetchWeather(when);
+    let used = false;
+    for (const k of ['temp', 'humidity', 'dew', 'wind']) {
+      if (form._condEdited.has(k) || w[k] == null) continue;
+      form.cond[k] = w[k]; const inp = $(`[data-cond="${k}"]`); if (inp) inp.value = w[k]; used = true;
+    }
+    if (used) form._condAuto = true;
+    st.textContent = `Weather for ${getLoc().label} at ${when.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}. Tap a field to change it.`;
+    updateLogSummaries();
+  } catch (e) { st.textContent = 'Couldn’t get weather right now. Enter it yourself, or fill it later from Settings.'; }
+}
 function readTimes() {
   form.miles = num($('#f-miles').value);
   form.duration = parseDuration($('#f-time').value);
   form.hr = Math.round(num($('#f-hr').value)) || null;
   if (!form._startedTouched && form.duration && !form.id) {
     $('#f-started').value = toLocalInput(new Date(Date.now() - form.duration * 1000));
+    queueWeather(1200);
   }
   const pl = $('#pace-line');
   if (form.miles && form.duration) {
@@ -483,7 +519,7 @@ function updateLogSummaries() {
   const rt = routes.find(r => r.id === form.routeId);
   const elev = c.elev || (rt && rt.elev);
   if (elev) parts.push('+' + elev + ' ft');
-  if (form.surface !== 'Treadmill') $('#cond-sum').textContent = parts.length ? parts.join(' · ') : 'Tap to add weather';
+  if (form.surface !== 'Treadmill') { $('#cond-sum').textContent = parts.length ? parts.join(' · ') : 'Tap to add weather'; const cb = $('#d-cond summary b'); cb.innerHTML = 'Conditions' + (form._condAuto && parts.length ? '<span class="auto-tag">AUTO</span>' : ''); }
   const sh = shoes.find(s => s.id === form.shoesId);
   $('#gear-sum').textContent = [form.surface === 'Treadmill' ? null : (rt ? rt.name : 'No route'), form.surface, sh ? sh.name : null, form.sick ? 'feeling sick' : null].filter(Boolean).join(' · ');
   const elevIn = $('#f-elev'); if (elevIn) elevIn.placeholder = rt && rt.elev ? String(rt.elev) : '';
@@ -493,7 +529,7 @@ function bindLog(app, existing) {
   const f = $('#logform');
   ['#f-miles', '#f-time', '#f-hr'].forEach(s => $(s).addEventListener('input', readTimes));
   $('#f-time').addEventListener('blur', e => { const d = parseDuration(e.target.value); if (d) e.target.value = fmtDur(d); });
-  $('#f-started').addEventListener('input', () => { form._startedTouched = true; form._startedEdited = true; });
+  $('#f-started').addEventListener('input', () => { form._startedTouched = true; form._startedEdited = true; queueWeather(); });
   $('#f-felt').addEventListener('input', e => { form.felt = +e.target.value; form._feltTouched = true; paintEffort(); });
   paintEffort();
   const ty = $('#f-type'); if (ty) ty.addEventListener('change', e => { form.type = e.target.value; });
@@ -526,7 +562,7 @@ function bindLog(app, existing) {
 
   f.addEventListener('input', e => {
     const c = e.target.dataset.cond;
-    if (c) { const v = e.target.value.trim(); if (v) form.cond[c] = num(v); else delete form.cond[c]; updateLogSummaries(); }
+    if (c) { const v = e.target.value.trim(); if (v) form.cond[c] = num(v); else delete form.cond[c]; form._condEdited.add(c); updateLogSummaries(); }
   });
 
   $('#f-route').addEventListener('change', e => {
@@ -553,7 +589,7 @@ function bindLog(app, existing) {
   $('#f-indoor').addEventListener('change', e => {
     form.surface = e.target.checked ? 'Treadmill' : (form._lastOutdoor || 'Road');
     $$('[data-seg="surface"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.val === form.surface));
-    syncIndoor(); updateLogSummaries();
+    syncIndoor(); updateLogSummaries(); if (!e.target.checked) queueWeather(100);
   });
   $('#f-sick').addEventListener('change', e => { form.sick = e.target.checked; updateLogSummaries(); });
 
@@ -574,6 +610,7 @@ function bindLog(app, existing) {
       symptoms: form.symptoms.slice(), symptomNote: ($('#f-symnote').value || '').trim(),
       before: form.before, foodNote: ($('#f-foodnote').value || '').trim(),
       indoor: form.surface === 'Treadmill',
+      weatherSource: form.surface !== 'Treadmill' && form._condAuto && ['temp', 'humidity', 'dew', 'wind'].some(k => form.cond[k] != null && !form._condEdited.has(k)) ? 'auto' : (existing ? existing.weatherSource : undefined),
       cond: form.surface === 'Treadmill' ? (form.cond.incline != null ? { incline: form.cond.incline } : {}) : (() => { const c = { ...form.cond }; delete c.incline; return c; })(),
       routeId: form.surface === 'Treadmill' ? '' : (form.routeId || ''), surface: form.surface, shoesId: form.shoesId || '', sick: form.sick,
       created: existing ? existing.created : new Date().toISOString(), updated: new Date().toISOString(), source: existing ? existing.source : 'manual'
@@ -592,6 +629,7 @@ async function renderRuns(app) {
       <div class="card empty"><p>No runs yet. Log your first one and it will show up here.</p><a href="#/log" class="secondary" style="display:inline-flex;align-items:center;text-decoration:none">Log a run</a></div>`;
     return;
   }
+  const sc = computeScores(runs);
   const thisWeek = weekStart(new Date()).getTime();
   const groups = new Map();
   runs.forEach(r => { const k = weekStart(r.started).getTime(); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); });
@@ -604,7 +642,7 @@ async function renderRuns(app) {
       <a class="card run-row" href="#/run/${r.id}">
         <span class="main"><b>${fmtDay(r.started)}${r.indoor ? ' · Indoor' : ''}${settings.trackTypes && r.type !== 'Easy' ? ' · ' + esc(r.type) : ''}</b>
         <span>${fmtPace(r)} /mi${r.hr ? ' · ' + r.hr + ' bpm' : ''}${r.symptoms && r.symptoms.length ? ' · <span style="color:var(--orange)">' + esc(r.symptoms[0]) + (r.symptoms.length > 1 ? ' +' + (r.symptoms.length - 1) : '') + '</span>' : ''}</span></span>
-        <span class="side"><span class="mono">${r.miles.toFixed(2)}</span>mi</span>
+        <span class="side"><span class="mono">${r.miles.toFixed(2)} <small style="font-size:12px;color:var(--muted)">mi</small></span>${sc[r.id] && sc[r.id].label ? `<span class="${labelClass(sc[r.id].label)}" style="margin-top:4px">${sc[r.id].label} ${sc[r.id].score}</span>` : ''}</span>
       </a>`).join('');
   }
   app.innerHTML = html + '</div>';
@@ -619,10 +657,27 @@ async function renderRun(app, id) {
   const elev = r.indoor ? null : ((r.cond && r.cond.elev) || (rt && rt.elev));
   const c = r.cond || {};
   const kv = (k, v) => v || v === 0 ? `<div class="kv"><span>${k}</span><span>${esc(v)}</span></div>` : '';
+  const S = computeScores(await DB.runs())[r.id] || {};
+  const why = [];
+  if (S.baseline && S.adj) {
+    const better = S.pct < 0;
+    const adjusted = Math.abs(S.adj - S.bpm) >= 5;
+    why.push(`Beats per mile ${S.adj}${adjusted ? ' (heat-adjusted)' : ''} vs your usual ${S.baseline}: <b style="color:${better ? 'var(--blue)' : 'var(--orange)'}">${Math.abs(S.pct).toFixed(1)}% ${better ? 'better' : 'worse'}</b>`);
+    if (adjusted && c.temp != null) { const per10 = Math.round(S.slope * 10); why.push(`Adjusted for ${c.temp}°F: on your runs, every 10°F warmer adds about ${per10} beat${per10 === 1 ? '' : 's'} per mile`); }
+  }
+  if (r.felt != null && S.usualFelt != null) why.push(`Effort ${r.felt}/10 vs your usual ${S.usualFelt}/10`);
+  if (S.vsPrev != null) why.push(`${S.vsPrev >= 0 ? '+' : ''}${S.vsPrev} vs your previous ${r.indoor ? 'indoor ' : ''}run`);
+  if (S.load != null) why.push(`Load ratio ${S.load.toFixed(2)}: ${loadWord(S.load)}`);
+  const scoreCard = S.score != null ? `<div class="card pad score-card">
+      <div class="score-top"><div><div class="sub">Session score</div><div class="score-num">${S.score}<small>/100</small></div></div><span class="${labelClass(S.label)}" style="font-size:15px;min-height:32px;padding:0 12px">${S.label}</span></div>
+      ${why.length ? `<div class="why">${why.map(w => `<div><span>${w}</span></div>`).join('')}</div>` : ''}
+      ${S.feelOnly ? '<div class="hint">Scored on effort only, since this run has no heart rate.</div>' : ''}
+    </div>` : `<div class="card pad"><div class="sub">Session score</div><div style="margin-top:4px">${bpm ? 'Scores start once you have 5 runs with heart rate.' : 'Add average heart rate to score this run.'}</div>${S.load != null ? `<div class="hint" style="margin-top:6px">Load ratio ${S.load.toFixed(2)}: ${loadWord(S.load)}</div>` : ''}</div>`;
   app.innerHTML = `
     <a class="back" href="#/runs">← Runs</a>
     <div class="head" style="align-items:flex-end"><div><div class="sub">${fmtDay(r.started)}${r.timeUnknown ? '' : ' at ' + fmtTime(r.started)}${r.indoor ? ' · Indoor' : ''}${settings.trackTypes ? ' · ' + esc(r.type) : ''}</div><h1>${r.miles.toFixed(2)} miles</h1></div></div>
     <div class="stack">
+      ${scoreCard}
       <div class="stats">
         <div class="card stat"><span>Time</span><b>${fmtDur(r.duration)}</b></div>
         <div class="card stat"><span>Pace /mi</span><b>${fmtPace(r)}</b></div>
@@ -638,7 +693,7 @@ async function renderRun(app, id) {
         ${kv('Food note', r.foodNote)}
       </div>
       <div class="card pad"><h2 style="margin-bottom:4px">Conditions and gear</h2>
-        ${r.indoor ? kv('Where', 'Indoor, treadmill') : ''}${kv('Temperature', c.temp != null ? c.temp + '°F' : '')}${kv('Humidity', c.humidity != null ? c.humidity + '%' : '')}${kv('Dew point', c.dew != null ? c.dew + '°F' : '')}${kv('Wind', c.wind != null ? c.wind + ' mph' : '')}
+        ${r.indoor ? kv('Where', 'Indoor, treadmill') : ''}${kv('Temperature', c.temp != null ? c.temp + '°F' + (r.weatherSource === 'auto' ? ' (auto)' : '') : '')}${kv('Humidity', c.humidity != null ? c.humidity + '%' : '')}${kv('Dew point', c.dew != null ? c.dew + '°F' : '')}${kv('Wind', c.wind != null ? c.wind + ' mph' : '')}
         ${r.indoor ? '' : kv('Route', rt ? rt.name : 'None')}${kv('Surface', r.surface)}${kv('Shoes', sh ? sh.name : '')}${r.sick ? kv('Feeling sick', 'Yes') : ''}${kv('Avg power', r.power ? r.power + ' w' : '')}${kv('Cadence', r.cadence ? r.cadence + ' spm' : '')}${kv('Notes', r.notes)}${r.source === 'import' ? kv('Source', 'Imported') : ''}
       </div>
       <div class="row" style="gap:10px">
@@ -660,6 +715,7 @@ async function renderSettings(app) {
   try { persisted = navigator.storage && await navigator.storage.persisted(); } catch (e) {}
   const size = new Blob([JSON.stringify(runs)]).size;
   const lastImport = await DB.getMeta('lastImport');
+  const missingWx = runs.filter(r => !r.indoor && (!r.cond || r.cond.temp == null)).length;
   app.innerHTML = `
     <a class="back" href="#/log">← Back</a>
     <div class="head"><h1>Settings</h1></div>
@@ -676,6 +732,13 @@ async function renderSettings(app) {
     <div class="card">
       <div class="srow"><span class="t">Import running log<span>${lastImport ? 'Last: ' + lastImport.count + ' runs from ' + esc(lastImport.file) : 'From Excel (.xlsx) or CSV'}</span></span><a class="small-btn dark" href="#/import" style="display:inline-flex;align-items:center;text-decoration:none">Import</a></div>
       <div class="srow"><span class="t">Export to Excel<span>Every run and field as a spreadsheet</span></span><button class="small-btn" id="export">Export</button></div>
+    </div>
+
+    <div class="sec-title">Weather</div>
+    <div class="card">
+      <div class="srow"><span class="t">Location<span id="loc-label">${esc(getLoc().label)}</span></span><button class="small-btn" id="loc-btn">Use my location</button></div>
+      <div class="srow"><span class="t">Fill in missing weather<span>${missingWx} past run${missingWx === 1 ? '' : 's'} without weather</span></span><button class="small-btn" id="wx-fill" ${missingWx ? '' : 'disabled'}>Fill in</button></div>
+      <div class="srow"><span class="t"><span>Weather comes from Open-Meteo. Only your rounded location and the run’s date are sent.</span></span></div>
     </div>
 
     <div class="sec-title">Appearance</div>
@@ -698,6 +761,29 @@ async function renderSettings(app) {
   $('#s-types').addEventListener('change', async e => { settings.trackTypes = e.target.checked; await saveSettings(); renderSettings(app); });
   $('#backup').addEventListener('click', () => backup(runs));
   $('#export').addEventListener('click', exportExcel);
+  $('#loc-btn').addEventListener('click', () => {
+    if (!navigator.geolocation) { toast('Location isn’t available on this device'); return; }
+    navigator.geolocation.getCurrentPosition(async pos => {
+      const lat = Math.round(pos.coords.latitude * 100) / 100, lon = Math.round(pos.coords.longitude * 100) / 100;
+      settings.loc = { lat, lon, label: `Current location (${lat.toFixed(2)}, ${lon.toFixed(2)})` }; await saveSettings();
+      $('#loc-label').textContent = settings.loc.label; toast('Location saved');
+    }, () => toast('Couldn’t get your location'), { timeout: 10000, maximumAge: 6e5 });
+  });
+  $('#wx-fill').addEventListener('click', async e => {
+    const btn = e.target; btn.disabled = true;
+    const todo = runs.filter(r => !r.indoor && (!r.cond || r.cond.temp == null));
+    let done = 0, failed = 0;
+    for (const r of todo) {
+      btn.textContent = `${done + failed + 1}/${todo.length}`;
+      try {
+        const when = new Date(r.started); if (r.timeUnknown) when.setHours(12, 0, 0, 0);
+        const w = await fetchWeather(when);
+        r.cond = { ...(r.cond || {}), ...Object.fromEntries(Object.entries(w).filter(([k]) => !r.cond || r.cond[k] == null)) };
+        r.weatherSource = 'auto'; await DB.put(r); done++;
+      } catch (err) { failed++; }
+    }
+    toast(failed ? `Filled ${done}, ${failed} couldn’t be reached` : `Filled weather for ${done} runs`); renderSettings(app);
+  });
   $('#restore').addEventListener('change', e => restore(e.target.files[0], app));
   $$('[data-del-route]').forEach(b => b.addEventListener('click', async () => { if (!confirm('Remove this route? Runs keep their data.')) return; routes = routes.filter(r => r.id !== b.dataset.delRoute); await saveRoutes(); renderSettings(app); }));
   $$('[data-del-shoe]').forEach(b => b.addEventListener('click', async () => { if (!confirm('Remove these shoes? Runs keep their data.')) return; shoes = shoes.filter(s => s.id !== b.dataset.delShoe); await saveShoes(); renderSettings(app); }));
@@ -733,6 +819,95 @@ async function restore(file, app) {
     toast('Restored ' + data.runs.length + ' runs'); renderSettings(app);
   } catch (e) { toast('That file isn’t a PaceTrack backup.'); }
 }
+
+/* ---------- Weather (Open-Meteo, no account needed) ---------- */
+const DEFAULT_LOC = { lat: 40.71, lon: -74.01, label: 'New York, NY' };
+const getLoc = () => settings.loc || DEFAULT_LOC;
+const ymd = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const weatherCache = new Map();
+async function fetchWeather(when) {
+  const loc = getLoc(), day = ymd(when);
+  const key = `${loc.lat},${loc.lon},${day}`;
+  let data = weatherCache.get(key);
+  if (!data) {
+    const ageDays = (Date.now() - when.getTime()) / 864e5;
+    const host = ageDays > 60 ? 'https://archive-api.open-meteo.com/v1/archive' : 'https://api.open-meteo.com/v1/forecast';
+    const q = `?latitude=${loc.lat}&longitude=${loc.lon}&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,wind_speed_10m&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto&start_date=${day}&end_date=${day}`;
+    const res = await fetch(host + q);
+    if (!res.ok) throw new Error('weather ' + res.status);
+    data = await res.json(); weatherCache.set(key, data);
+  }
+  const h = data.hourly; if (!h || !h.time) throw new Error('no data');
+  const hour = String(when.getHours()).padStart(2, '0');
+  let i = h.time.findIndex(t => t.endsWith('T' + hour + ':00')); if (i < 0) i = 12;
+  const pick = k => h[k] && h[k][i] != null ? h[k][i] : null;
+  const out = { temp: pick('temperature_2m'), humidity: pick('relative_humidity_2m'), dew: pick('dew_point_2m'), wind: pick('wind_speed_10m') };
+  if (out.temp == null) throw new Error('empty');
+  return { temp: Math.round(out.temp), humidity: Math.round(out.humidity), dew: Math.round(out.dew), wind: Math.round(out.wind * 10) / 10 };
+}
+
+/* ---------- Scoring ---------- */
+const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const stdev = a => { if (a.length < 2) return 0; const m = a.reduce((x, y) => x + y, 0) / a.length; return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / (a.length - 1)); };
+const LABELS = [[75, 'Great'], [60, 'Good'], [40, 'Typical'], [25, 'Rough'], [0, 'Bad']];
+const labelFor = s => (LABELS.find(([m]) => s >= m) || LABELS[4])[1];
+const groupKey = r => (r.indoor ? 'in' : 'out') + ':' + (settings.trackTypes ? (r.type || 'Easy') : 'Easy');
+const dayNum = iso => { const d = new Date(iso); return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5); };
+
+function computeScores(allRuns) {
+  const runs = [...allRuns].sort((a, b) => a.started.localeCompare(b.started));
+  const out = {}, byGroup = {};
+  runs.forEach(r => { (byGroup[groupKey(r)] = byGroup[groupKey(r)] || []).push(r); });
+  const models = {};
+  for (const [g, list] of Object.entries(byGroup)) {
+    const pts = list.filter(r => beatsPerMile(r) && r.cond && r.cond.temp != null && !r.indoor).map(r => [r.cond.temp, beatsPerMile(r)]);
+    let slope = 0;
+    if (pts.length >= 12) {
+      const mx = pts.reduce((a, p) => a + p[0], 0) / pts.length, my = pts.reduce((a, p) => a + p[1], 0) / pts.length;
+      const vx = pts.reduce((a, p) => a + (p[0] - mx) ** 2, 0);
+      if (vx > 0) slope = Math.max(0, pts.reduce((a, p) => a + (p[0] - mx) * (p[1] - my), 0) / vx);
+    }
+    models[g] = { slope, n: pts.length };
+  }
+  const adjOf = r => { const b = beatsPerMile(r); if (!b) return null; const m = models[groupKey(r)]; const t = r.cond && r.cond.temp; return t != null && !r.indoor ? b - m.slope * (t - 60) : b; };
+  const firstDay = runs.length ? dayNum(runs[0].started) : 0;
+  runs.forEach((r, idx) => {
+    const g = groupKey(r), group = byGroup[g], pos = group.indexOf(r);
+    const prior = group.slice(Math.max(0, pos - 20), pos);
+    let hist = prior.map(adjOf).filter(v => v != null);
+    if (hist.length < 5) hist = group.filter(x => x !== r).map(adjOf).filter(v => v != null);
+    const adj = adjOf(r), bpm = beatsPerMile(r);
+    const res = { bpm, adj: adj != null ? Math.round(adj) : null, slope: models[g].slope, group: g };
+    let eff = null;
+    if (adj != null && hist.length >= 5) {
+      const base = median(hist), sd = Math.max(stdev(hist), base * 0.02);
+      res.baseline = Math.round(base); res.pct = (adj - base) / base * 100;
+      eff = Math.max(0, Math.min(100, 50 + 15 * (base - adj) / sd));
+    }
+    const felts = prior.map(x => x.felt).filter(v => v != null);
+    const medFelt = felts.length >= 5 ? median(felts) : 5;
+    let feel = null;
+    if (r.felt != null) { feel = Math.max(0, Math.min(100, 50 - 12 * (r.felt - medFelt))); res.usualFelt = medFelt; }
+    if (eff != null) res.score = Math.round(feel != null ? 0.75 * eff + 0.25 * feel : eff);
+    else if (feel != null && hist.length >= 5) { res.score = Math.round(feel); res.feelOnly = true; }
+    if (res.score != null) res.label = labelFor(res.score);
+    // load ratio
+    const d = dayNum(r.started);
+    if (d - firstDay >= 21) {
+      let acute = 0, chronic = 0, n28 = 0;
+      for (const x of runs) { const xd = dayNum(x.started); if (xd > d) break; if (xd > d - 7) acute += x.miles; if (xd > d - 28) { chronic += x.miles; n28++; } }
+      if (chronic > 0 && n28 >= 4) res.load = acute / (chronic / 4);
+      else if (n28 < 4) res.returning = true;
+    }
+    // previous similar run
+    const prev = group[pos - 1]; if (prev) res.prevId = prev.id;
+    out[r.id] = res;
+  });
+  for (const r of Object.values(out)) if (r.prevId && out[r.prevId] && out[r.prevId].score != null && r.score != null) r.vsPrev = r.score - out[r.prevId].score;
+  return out;
+}
+const loadWord = x => x == null ? '' : x < 0.8 ? 'easing off' : x <= 1.3 ? 'steady' : x <= 1.5 ? 'building fast' : 'big jump';
+const labelClass = l => 'lab lab-' + (l || 'none').toLowerCase();
 
 /* ---------- Spreadsheet: zip + xlsx reader/writer (no dependencies) ---------- */
 const Sheet = (() => {
