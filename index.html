@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PaceTrack">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F4F1EA">
+<meta name="color-scheme" content="light">
+<title>PaceTrack</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" href="icons/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root {
+  --paper: #F4F1EA; --card: #FFFFFF; --ink: #1B1D1F; --muted: #5C5A55; --faint: #8A857A;
+  --line: #DAD4C7; --soft: #EEEAE0; --field: #F8F6F1;
+  --blue: #1F5FAE; --blue-soft: #DCE6F3; --orange: #B4541A; --orange-soft: #FBE3D2; --warn-bg: #FBF1E8;
+  --sans: 'IBM Plex Sans', -apple-system, system-ui, sans-serif;
+  --serif: Fraunces, Georgia, serif;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --tabbar: 64px;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.4 var(--sans); -webkit-tap-highlight-color: transparent; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.app { max-width: 560px; margin: 0 auto; padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px calc(var(--tabbar) + env(safe-area-inset-bottom, 0px) + 24px); }
+.head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; min-height: 44px; }
+h1 { margin: 0; font: 600 30px/1.1 var(--serif); letter-spacing: -0.01em; }
+h2 { margin: 0; font: 600 15px/1.3 var(--sans); }
+.sub { font-size: 13px; color: var(--muted); }
+.icon-btn { width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--line); background: var(--card); display: inline-flex; align-items: center; justify-content: center; text-decoration: none; color: var(--ink); flex-shrink: 0; }
+.back { display: inline-flex; align-items: center; min-height: 44px; color: var(--blue); text-decoration: none; font-size: 15px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.pad { padding: 16px; }
+.mono { font-family: var(--mono); }
+.label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); min-width: 0; }
+.input { height: 44px; border: 1px solid #BDB6A6; border-radius: 8px; padding: 0 10px; background: var(--card); font-size: 16px; width: 100%; min-width: 0; }
+.input.soft { background: var(--field); border-color: var(--line); }
+select.input { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 16px) 19px, calc(100% - 11px) 19px; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 28px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.row { display: flex; align-items: center; gap: 8px; }
+.started { font-size: 13px; color: var(--muted); }
+.started input { flex: 1; height: 38px; font-size: 14px; }
+.seg { display: flex; gap: 4px; }
+.seg button { flex: 1; min-height: 40px; padding: 0 2px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); font-size: 13px; }
+.seg button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { min-height: 40px; padding: 0 12px; border-radius: 20px; border: 1px solid #BDB6A6; background: var(--card); font-size: 14px; }
+.chip[aria-pressed="true"] { border-color: var(--orange); background: var(--orange-soft); }
+.chip.dark[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+.q { display: flex; flex-direction: column; gap: 6px; }
+.q > span { font-size: 13px; color: var(--muted); }
+.slider-top { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; color: var(--muted); }
+.slider-top b { font: 500 22px var(--mono); color: var(--ink); }
+.slider-top b small { font-size: 13px; color: var(--muted); }
+input[type="range"] { width: 100%; height: 36px; accent-color: var(--ink); margin: 0; }
+.scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+details { background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+details.inner { border: 0; border-top: 1px solid var(--soft); border-radius: 0; margin: 4px -16px -16px; }
+summary { list-style: none; min-height: 60px; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; cursor: pointer; }
+summary::-webkit-details-marker { display: none; }
+summary .t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+summary .t b { font-weight: 600; font-size: 15px; }
+summary .t span { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+summary .t span.hot { color: var(--orange); font-weight: 500; font-size: 15px; }
+summary .pm { font-size: 20px; color: var(--muted); width: 20px; text-align: center; }
+summary .pm::before { content: '+'; }
+details[open] > summary .pm::before { content: '−'; }
+.dbody { padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 14px; }
+.group-name { font-size: 12px; font-weight: 600; color: var(--muted); }
+.linkbtn { align-self: flex-start; min-height: 36px; padding: 0; border: 0; background: none; color: var(--blue); font-size: 14px; }
+.note { font-size: 12px; color: #8A3D10; background: var(--warn-bg); border-radius: 8px; padding: 8px 10px; }
+.hint { font-size: 12px; color: var(--muted); }
+.primary { width: 100%; height: 54px; border: 0; border-radius: 12px; background: var(--ink); color: var(--paper); font-size: 16px; font-weight: 600; }
+.primary:disabled { opacity: 0.4; }
+.secondary { min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #BDB6A6; background: var(--card); font-size: 15px; }
+.danger { color: #9A2E12; }
+.err { font-size: 13px; color: #9A2E12; min-height: 18px; }
+.inline-add { display: grid; grid-template-columns: 1fr 90px auto; gap: 6px; align-items: end; }
+.inline-add.two { grid-template-columns: 1fr auto; }
+.toggle { display: flex; justify-content: space-between; align-items: center; min-height: 44px; font-size: 15px; gap: 12px; }
+.toggle input { width: 22px; height: 22px; accent-color: var(--ink); flex-shrink: 0; }
+.list { display: flex; flex-direction: column; gap: 6px; }
+.run-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 64px; padding: 10px 14px; text-decoration: none; color: var(--ink); }
+.run-row .main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.run-row .main b { font-weight: 500; }
+.run-row .main span { font-size: 13px; color: var(--muted); }
+.run-row .side { text-align: right; font-size: 13px; color: var(--muted); flex-shrink: 0; }
+.run-row .side .mono { display: block; font-size: 15px; color: var(--ink); }
+.week { font-size: 13px; font-weight: 600; color: var(--muted); margin: 14px 2px 4px; display: flex; justify-content: space-between; }
+.week:first-child { margin-top: 0; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.stat { padding: 10px 12px; }
+.stat span { font-size: 12px; color: var(--muted); }
+.stat b { display: block; font: 500 18px var(--mono); margin-top: 2px; }
+.kv { display: flex; justify-content: space-between; gap: 12px; min-height: 40px; align-items: center; border-top: 1px solid var(--soft); font-size: 15px; }
+.kv:first-of-type { border-top: 0; }
+.kv span:first-child { color: var(--muted); }
+.kv span:last-child { text-align: right; }
+.sym-tag { display: inline-flex; align-items: center; min-height: 30px; padding: 0 10px; border-radius: 15px; border: 1px solid var(--orange); background: var(--orange-soft); font-size: 14px; }
+.empty { text-align: center; padding: 40px 20px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.empty p { margin: 0; color: var(--muted); max-width: 30ch; }
+.srow { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 56px; padding: 8px 14px; border-top: 1px solid var(--soft); }
+.srow:first-child { border-top: 0; }
+.srow .t { display: flex; flex-direction: column; min-width: 0; }
+.srow .t span { font-size: 12px; color: var(--muted); }
+.sec-title { font-size: 13px; font-weight: 600; color: var(--muted); margin: 18px 2px 6px; }
+.small-btn { min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid #BDB6A6; background: var(--card); font-size: 13px; flex-shrink: 0; }
+.small-btn.dark { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line); display: flex; justify-content: center; padding-bottom: env(safe-area-inset-bottom, 0px); z-index: 5; }
+.tabbar a { flex: 1; max-width: 200px; height: var(--tabbar); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--faint); text-decoration: none; font-size: 11px; }
+.tabbar a[aria-current="page"] { color: var(--ink); font-weight: 600; }
+.toast { position: fixed; left: 50%; bottom: calc(var(--tabbar) + env(safe-area-inset-bottom, 0px) + 14px); transform: translateX(-50%) translateY(12px); background: var(--ink); color: var(--paper); padding: 12px 18px; border-radius: 12px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 10; max-width: calc(100% - 32px); }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+[hidden] { display: none !important; }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<main class="app" id="app" aria-live="polite"></main>
+<nav class="tabbar" aria-label="Main">
+  <a href="#/log" data-tab="log"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Log</a>
+  <a href="#/runs" data-tab="runs"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Runs</a>
+</nav>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+'use strict';
+/* ---------- Storage (IndexedDB) ---------- */
+const DB = (() => {
+  let dbp;
+  const open = () => dbp || (dbp = new Promise((res, rej) => {
+    const r = indexedDB.open('pacetrack', 1);
+    r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('runs', { keyPath: 'id' }); d.createObjectStore('meta'); };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  }));
+  const tx = async (store, mode, fn) => {
+    const d = await open();
+    return new Promise((res, rej) => {
+      const t = d.transaction(store, mode); const s = t.objectStore(store);
+      const out = fn(s); t.oncomplete = () => res(out instanceof IDBRequest ? out.result : out); t.onerror = () => rej(t.error);
+    });
+  };
+  return {
+    runs: () => tx('runs', 'readonly', s => s.getAll()),
+    run: id => tx('runs', 'readonly', s => s.get(id)),
+    put: run => tx('runs', 'readwrite', s => s.put(run)),
+    del: id => tx('runs', 'readwrite', s => s.delete(id)),
+    clear: () => tx('runs', 'readwrite', s => s.clear()),
+    getMeta: k => tx('meta', 'readonly', s => s.get(k)),
+    setMeta: (k, v) => tx('meta', 'readwrite', s => s.put(v, k)),
+  };
+})();
+
+/* ---------- Options ---------- */
+const BEFORE = [
+  { key: 'sleep', q: 'Sleep last night', opts: ['<5 h', '5–6', '6–7', '7–8', '8+'], def: '7–8' },
+  { key: 'meal', q: 'Last meal before run', opts: ['<1 h', '1–2 h', '2–4 h', '4 h+', 'Fasted'], def: '2–4 h' },
+  { key: 'mealType', q: 'What kind of meal', opts: ['Light', 'Heavy', 'Carbs', 'Fatty', 'Fiber'], def: [], multi: true },
+  { key: 'caffeine', q: 'Caffeine', opts: ['None', '1 cup', '2+'], def: 'None' },
+  { key: 'water', q: 'Water, prior 24 h', opts: ['Low', 'Normal', 'High'], def: 'Normal' },
+  { key: 'alcohol', q: 'Alcohol last night', opts: ['None', '1–2', '3+'], def: 'None' },
+  { key: 'soreness', q: 'Soreness', opts: ['None', 'Mild', 'Moderate', 'High'], def: 'None' },
+  { key: 'stress', q: 'Stress', opts: ['Low', 'Medium', 'High'], def: 'Low' },
+];
+const SYMPTOMS = [
+  ['Breathing and energy', ['Short of breath', 'Low energy', 'Dizzy / lightheaded', 'Overheated']],
+  ['Stomach', ['Side stitch', 'Nausea', 'Needed bathroom', 'Heartburn']],
+  ['Muscles', ['Cramp', 'Heavy legs', 'Tight calves', 'Tight hamstrings']],
+  ['Aches and pain', ['Shin', 'Knee', 'Hip / IT band', 'Foot / heel', 'Achilles', 'Lower back']],
+  ['Skin and other', ['Blister', 'Chafing', 'Numb toes', 'Headache']],
+];
+const TYPES = ['Easy', 'Tempo', 'Long', 'Intervals', 'Race'];
+const SURFACES = ['Road', 'Track', 'Trail', 'Treadmill'];
+
+/* ---------- Helpers ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const num = v => { const n = parseFloat(String(v).replace(',', '.')); return isFinite(n) ? n : null; };
+
+function parseDuration(str) {
+  const s = String(str || '').trim(); if (!s) return null;
+  let parts;
+  if (/[:.]/.test(s)) parts = s.split(/[:.]/).map(p => parseInt(p, 10));
+  else {
+    const d = s.replace(/\D/g, ''); if (!d) return null;
+    if (d.length <= 2) parts = [+d, 0];
+    else if (d.length <= 4) parts = [+d.slice(0, -2), +d.slice(-2)];
+    else parts = [+d.slice(0, -4), +d.slice(-4, -2), +d.slice(-2)];
+  }
+  if (parts.some(isNaN)) return null;
+  const sec = parts.length === 3 ? parts[0] * 3600 + parts[1] * 60 + parts[2] : parts[0] * 60 + (parts[1] || 0);
+  return sec > 0 ? sec : null;
+}
+const fmtDur = sec => { if (!sec) return '—'; sec = Math.round(sec); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(s).padStart(2, '0'); };
+const paceSec = r => r.miles && r.duration ? r.duration / r.miles : null;
+const fmtPace = r => { const p = paceSec(r); return p ? fmtDur(p) : '—'; };
+const beatsPerMile = r => r.hr && paceSec(r) ? Math.round(r.hr * paceSec(r) / 60) : null;
+const toLocalInput = d => { const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000); return z.toISOString().slice(0, 16); };
+const fmtDay = iso => new Date(iso).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+const fmtTime = iso => new Date(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+function weekStart(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
+
+let toastTimer;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2400); }
+
+/* ---------- Settings & lists ---------- */
+const settings = { trackTypes: false };
+let routes = [], shoes = [];
+async function loadMeta() {
+  Object.assign(settings, (await DB.getMeta('settings')) || {});
+  routes = (await DB.getMeta('routes')) || [];
+  shoes = (await DB.getMeta('shoes')) || [];
+}
+const saveSettings = () => DB.setMeta('settings', { ...settings });
+const saveRoutes = () => DB.setMeta('routes', routes);
+const saveShoes = () => DB.setMeta('shoes', shoes);
+
+/* ---------- Router ---------- */
+const GEAR = '<a href="#/settings" class="icon-btn" aria-label="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>';
+
+async function route() {
+  const h = location.hash.replace(/^#\/?/, '') || 'log';
+  const [view, id] = h.split('/');
+  const app = $('#app');
+  $$('.tabbar a').forEach(a => a.setAttribute('aria-current', a.dataset.tab === (view === 'run' ? 'runs' : view === 'edit' ? 'log' : view) ? 'page' : 'false'));
+  window.scrollTo(0, 0);
+  if (view === 'runs') return renderRuns(app);
+  if (view === 'run' && id) return renderRun(app, id);
+  if (view === 'settings') return renderSettings(app);
+  if (view === 'edit' && id) return renderLog(app, await DB.run(id));
+  return renderLog(app);
+}
+
+/* ---------- Log a run ---------- */
+let form = null;
+
+async function renderLog(app, existing) {
+  const all = await DB.runs();
+  const last = all.sort((a, b) => b.started.localeCompare(a.started))[0];
+  const usual = {};
+  BEFORE.forEach(b => { usual[b.key] = last && last.before && last.before[b.key] !== undefined ? last.before[b.key] : b.def; });
+  form = existing ? JSON.parse(JSON.stringify(existing)) : {
+    id: null, started: null, miles: null, duration: null, hr: null,
+    type: last ? last.type || 'Easy' : 'Easy', felt: 5, symptoms: [], symptomNote: '',
+    before: JSON.parse(JSON.stringify(usual)), foodNote: '',
+    cond: {}, routeId: (all.find(r => !r.indoor && r.routeId) || {}).routeId || '', surface: (all.find(r => r.surface && r.surface !== 'Treadmill') || {}).surface || 'Road', shoesId: last ? last.shoesId || '' : '', sick: false, notes: ''
+  };
+  form._startedTouched = !!existing;
+  form._lastOutdoor = form.surface !== 'Treadmill' ? form.surface : 'Road';
+  const startDate = existing ? new Date(existing.started) : new Date();
+
+  const segHtml = (field, opts, val, multi) => `<div class="seg" role="group">${opts.map(o => `<button type="button" data-seg="${field}" data-val="${esc(o)}"${multi ? ' data-multi="1"' : ''} aria-pressed="${multi ? (val || []).includes(o) : val === o}">${esc(o)}</button>`).join('')}</div>`;
+
+  app.innerHTML = `
+  <div class="head"><h1>${existing ? 'Edit run' : 'Log a run'}</h1>${existing ? `<a class="back" href="#/run/${existing.id}">Cancel</a>` : GEAR}</div>
+  <form id="logform" class="stack" novalidate>
+    <section class="card pad stack">
+      <div class="row started">
+        <label for="f-started">Started</label>
+        <input id="f-started" class="input soft" type="datetime-local" value="${toLocalInput(startDate)}">
+        ${settings.trackTypes ? `<select id="f-type" class="input soft" style="width:auto;height:38px;font-size:14px" aria-label="Run type">${TYPES.map(t => `<option${t === form.type ? ' selected' : ''}>${t}</option>`).join('')}</select>` : ''}
+      </div>
+      <div class="grid3">
+        <label class="label">Miles<input id="f-miles" class="input" inputmode="decimal" placeholder="0.0" value="${existing ? existing.miles : ''}"></label>
+        <label class="label">Time<input id="f-time" class="input" inputmode="numeric" placeholder="mm:ss" value="${existing ? fmtDur(existing.duration) : ''}"></label>
+        <label class="label">Avg HR<input id="f-hr" class="input" inputmode="numeric" placeholder="bpm" value="${existing && existing.hr ? existing.hr : ''}"></label>
+      </div>
+      <div class="hint" id="pace-line"></div>
+      <div>
+        <div class="slider-top"><label for="f-felt">How hard did it feel?</label><b><span id="felt-val">${form.felt}</span><small>/10</small></b></div>
+        <input id="f-felt" type="range" min="1" max="10" step="1" value="${form.felt}">
+        <div class="scale"><span>Very easy</span><span>Moderate</span><span>All out</span></div>
+      </div>
+      <details class="inner" id="d-sym">
+        <summary><span class="t"><span style="font-size:13px;white-space:normal">During the run</span><span id="sym-sum"></span></span><span class="pm" aria-hidden="true"></span></summary>
+        <div class="dbody">
+          ${SYMPTOMS.map(([g, items]) => `<div class="q"><span class="group-name">${g}</span><div class="chips">${items.map(s => `<button type="button" class="chip" data-sym="${esc(s)}" aria-pressed="${form.symptoms.includes(s)}">${esc(s)}</button>`).join('')}</div></div>`).join('')}
+          <div class="note">Chest pain, fainting or an irregular heartbeat: stop and get medical help.</div>
+          <input id="f-symnote" class="input" placeholder="Note, e.g. stitch around mile 2" aria-label="Symptom note" value="${esc(form.symptomNote)}" ${form.symptomNote ? '' : 'hidden'}>
+          <button type="button" class="linkbtn" data-reveal="f-symnote" ${form.symptomNote ? 'hidden' : ''}>+ Add a note</button>
+        </div>
+      </details>
+    </section>
+
+    <details id="d-before">
+      <summary><span class="t"><b>Before the run</b><span id="before-sum"></span></span><span class="pm" aria-hidden="true"></span></summary>
+      <div class="dbody">
+        ${BEFORE.map(b => `<div class="q"><span>${b.q}${b.multi ? ' <small>(pick any)</small>' : ''}</span>${segHtml('before.' + b.key, b.opts, form.before[b.key], b.multi)}</div>`).join('')}
+        <input id="f-foodnote" class="input" placeholder="What did you eat? e.g. bagel and coffee" aria-label="Food note" value="${esc(form.foodNote)}" ${form.foodNote ? '' : 'hidden'}>
+        <button type="button" class="linkbtn" data-reveal="f-foodnote" ${form.foodNote ? 'hidden' : ''}>+ What did you eat?</button>
+      </div>
+    </details>
+
+    <details id="d-cond">
+      <summary><span class="t"><b>Conditions</b><span id="cond-sum"></span></span><span class="pm" aria-hidden="true"></span></summary>
+      <div class="dbody">
+        <label class="toggle">Indoor run (treadmill)<input type="checkbox" id="f-indoor"></label>
+        <div id="indoor-fields" class="grid3">
+          <label class="label">Incline %<input class="input soft" data-cond="incline" inputmode="decimal" value="${esc(form.cond.incline ?? '')}"></label>
+        </div>
+        <div id="outdoor-fields" class="stack">
+        <div class="grid3">
+          <label class="label">Temp °F<input class="input soft" data-cond="temp" inputmode="decimal" value="${esc(form.cond.temp ?? '')}"></label>
+          <label class="label">Humidity %<input class="input soft" data-cond="humidity" inputmode="numeric" value="${esc(form.cond.humidity ?? '')}"></label>
+          <label class="label">Wind mph<input class="input soft" data-cond="wind" inputmode="decimal" value="${esc(form.cond.wind ?? '')}"></label>
+          <label class="label">Dew point °F<input class="input soft" data-cond="dew" inputmode="decimal" value="${esc(form.cond.dew ?? '')}"></label>
+          <label class="label">Elevation ft<input class="input soft" data-cond="elev" inputmode="numeric" id="f-elev" value="${esc(form.cond.elev ?? '')}"></label>
+        </div>
+        <div class="hint">Weather will fill in automatically in a later update. Elevation comes from your route if you leave it blank.</div>
+        </div>
+      </div>
+    </details>
+
+    <details id="d-gear">
+      <summary><span class="t"><b>Route, surface and gear</b><span id="gear-sum"></span></span><span class="pm" aria-hidden="true"></span></summary>
+      <div class="dbody">
+        <label class="label">Route
+          <select id="f-route" class="input"></select>
+        </label>
+        <div class="inline-add" id="add-route" hidden>
+          <label class="label">Route name<input class="input" id="nr-name" placeholder="e.g. Hudson loop"></label>
+          <label class="label">Gain ft<input class="input" id="nr-elev" inputmode="numeric" placeholder="0"></label>
+          <button type="button" class="small-btn dark" id="nr-add" style="height:44px">Add</button>
+        </div>
+        <div class="q"><span>Surface</span>${segHtml('surface', SURFACES, form.surface)}</div>
+        <label class="label">Shoes
+          <select id="f-shoes" class="input"></select>
+        </label>
+        <div class="inline-add two" id="add-shoes" hidden>
+          <label class="label">Shoe name<input class="input" id="ns-name" placeholder="e.g. Blue daily trainers"></label>
+          <button type="button" class="small-btn dark" id="ns-add" style="height:44px">Add</button>
+        </div>
+        <label class="toggle">Feeling sick or run down<input type="checkbox" id="f-sick" ${form.sick ? 'checked' : ''}></label>
+      </div>
+    </details>
+
+    <div class="err" id="form-err" role="alert"></div>
+    <button type="submit" class="primary" id="save-btn">${existing ? 'Save changes' : 'Save run'}</button>
+  </form>`;
+
+  fillSelects();
+  bindLog(app, existing);
+  syncIndoor();
+  updateLogSummaries();
+}
+
+function fillSelects() {
+  const r = $('#f-route'), s = $('#f-shoes');
+  r.innerHTML = `<option value="">No route</option>${routes.map(x => `<option value="${x.id}"${x.id === form.routeId ? ' selected' : ''}>${esc(x.name)}${x.elev ? ` · +${x.elev} ft` : ''}</option>`).join('')}<option value="__new">Add a route…</option>`;
+  s.innerHTML = `<option value="">Not set</option>${shoes.map(x => `<option value="${x.id}"${x.id === form.shoesId ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}<option value="__new">Add shoes…</option>`;
+}
+
+function readTimes() {
+  form.miles = num($('#f-miles').value);
+  form.duration = parseDuration($('#f-time').value);
+  form.hr = Math.round(num($('#f-hr').value)) || null;
+  if (!form._startedTouched && form.duration && !form.id) {
+    $('#f-started').value = toLocalInput(new Date(Date.now() - form.duration * 1000));
+  }
+  const pl = $('#pace-line');
+  if (form.miles && form.duration) {
+    const bpm = beatsPerMile(form);
+    pl.textContent = `Pace ${fmtPace(form)} /mi${bpm ? ` · ${bpm} beats per mile` : ''}`;
+  } else pl.textContent = '';
+}
+
+function syncIndoor() {
+  const indoor = form.surface === 'Treadmill';
+  $('#f-indoor').checked = indoor;
+  $('#indoor-fields').hidden = !indoor;
+  $('#outdoor-fields').hidden = indoor;
+  $('#f-route').closest('label').hidden = indoor;
+}
+function updateLogSummaries() {
+  const ss = $('#sym-sum');
+  ss.textContent = form.symptoms.length ? form.symptoms.join(', ') : 'None';
+  ss.className = form.symptoms.length ? 'hot' : '';
+  if (!form.symptoms.length) ss.style.cssText = 'font-size:15px;font-weight:500;color:var(--ink)'; else ss.style.cssText = '';
+  const b = form.before;
+  const mt = (b.mealType || []).length ? ' (' + b.mealType.join(', ').toLowerCase() + ')' : '';
+  $('#before-sum').textContent = `${b.sleep} sleep · ate ${b.meal === 'Fasted' ? 'nothing (fasted)' : b.meal + ' before'}${mt} · ${b.water.toLowerCase()} water`;
+  const c = form.cond, parts = [];
+  if (form.surface === 'Treadmill') {
+    $('#cond-sum').textContent = 'Indoor, no weather' + (c.incline ? ' · ' + c.incline + '% incline' : '');
+  }
+  if (c.temp) parts.push(c.temp + '°F'); if (c.humidity) parts.push(c.humidity + '% humidity'); if (c.wind) parts.push('wind ' + c.wind + ' mph');
+  const rt = routes.find(r => r.id === form.routeId);
+  const elev = c.elev || (rt && rt.elev);
+  if (elev) parts.push('+' + elev + ' ft');
+  if (form.surface !== 'Treadmill') $('#cond-sum').textContent = parts.length ? parts.join(' · ') : 'Tap to add weather';
+  const sh = shoes.find(s => s.id === form.shoesId);
+  $('#gear-sum').textContent = [form.surface === 'Treadmill' ? null : (rt ? rt.name : 'No route'), form.surface, sh ? sh.name : null, form.sick ? 'feeling sick' : null].filter(Boolean).join(' · ');
+  const elevIn = $('#f-elev'); if (elevIn) elevIn.placeholder = rt && rt.elev ? String(rt.elev) : '';
+}
+
+function bindLog(app, existing) {
+  const f = $('#logform');
+  ['#f-miles', '#f-time', '#f-hr'].forEach(s => $(s).addEventListener('input', readTimes));
+  $('#f-time').addEventListener('blur', e => { const d = parseDuration(e.target.value); if (d) e.target.value = fmtDur(d); });
+  $('#f-started').addEventListener('input', () => { form._startedTouched = true; });
+  $('#f-felt').addEventListener('input', e => { form.felt = +e.target.value; $('#felt-val').textContent = form.felt; });
+  const ty = $('#f-type'); if (ty) ty.addEventListener('change', e => { form.type = e.target.value; });
+
+  f.addEventListener('click', e => {
+    const seg = e.target.closest('[data-seg]');
+    if (seg) {
+      const [grp, key] = seg.dataset.seg.split('.');
+      const val = seg.dataset.val;
+      if (seg.dataset.multi) {
+        const arr = form[grp][key] || (form[grp][key] = []);
+        const i = arr.indexOf(val); i > -1 ? arr.splice(i, 1) : arr.push(val);
+        seg.setAttribute('aria-pressed', i === -1);
+      } else {
+        if (key) form[grp][key] = val; else form[grp] = val;
+        $$(`[data-seg="${seg.dataset.seg}"]`, f).forEach(b => b.setAttribute('aria-pressed', b === seg));
+        if (grp === 'surface') { if (val !== 'Treadmill') form._lastOutdoor = val; syncIndoor(); }
+      }
+      updateLogSummaries(); return;
+    }
+    const sym = e.target.closest('[data-sym]');
+    if (sym) {
+      const s = sym.dataset.sym, i = form.symptoms.indexOf(s);
+      i > -1 ? form.symptoms.splice(i, 1) : form.symptoms.push(s);
+      sym.setAttribute('aria-pressed', i === -1); updateLogSummaries(); return;
+    }
+    const rev = e.target.closest('[data-reveal]');
+    if (rev) { const el = $('#' + rev.dataset.reveal); el.hidden = false; rev.hidden = true; el.focus(); }
+  });
+
+  f.addEventListener('input', e => {
+    const c = e.target.dataset.cond;
+    if (c) { const v = e.target.value.trim(); if (v) form.cond[c] = num(v); else delete form.cond[c]; updateLogSummaries(); }
+  });
+
+  $('#f-route').addEventListener('change', e => {
+    if (e.target.value === '__new') { $('#add-route').hidden = false; $('#nr-name').focus(); e.target.value = form.routeId || ''; return; }
+    form.routeId = e.target.value; updateLogSummaries();
+  });
+  $('#nr-add').addEventListener('click', async () => {
+    const name = $('#nr-name').value.trim(); if (!name) { $('#nr-name').focus(); return; }
+    const r = { id: uid(), name, elev: Math.round(num($('#nr-elev').value)) || 0 };
+    routes.push(r); await saveRoutes(); form.routeId = r.id;
+    $('#add-route').hidden = true; $('#nr-name').value = ''; $('#nr-elev').value = '';
+    fillSelects(); updateLogSummaries(); toast('Route added');
+  });
+  $('#f-shoes').addEventListener('change', e => {
+    if (e.target.value === '__new') { $('#add-shoes').hidden = false; $('#ns-name').focus(); e.target.value = form.shoesId || ''; return; }
+    form.shoesId = e.target.value; updateLogSummaries();
+  });
+  $('#ns-add').addEventListener('click', async () => {
+    const name = $('#ns-name').value.trim(); if (!name) { $('#ns-name').focus(); return; }
+    const s = { id: uid(), name }; shoes.push(s); await saveShoes(); form.shoesId = s.id;
+    $('#add-shoes').hidden = true; $('#ns-name').value = '';
+    fillSelects(); updateLogSummaries(); toast('Shoes added');
+  });
+  $('#f-indoor').addEventListener('change', e => {
+    form.surface = e.target.checked ? 'Treadmill' : (form._lastOutdoor || 'Road');
+    $$('[data-seg="surface"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.val === form.surface));
+    syncIndoor(); updateLogSummaries();
+  });
+  $('#f-sick').addEventListener('change', e => { form.sick = e.target.checked; updateLogSummaries(); });
+
+  f.addEventListener('submit', async e => {
+    e.preventDefault(); readTimes();
+    const err = $('#form-err');
+    if (!form.miles || !form.duration) { err.textContent = 'Add miles and time to save this run.'; (form.miles ? $('#f-time') : $('#f-miles')).focus(); return; }
+    err.textContent = '';
+    const started = new Date($('#f-started').value);
+    const run = {
+      id: form.id || uid(),
+      started: (isNaN(started) ? new Date() : started).toISOString(),
+      miles: form.miles, duration: form.duration, hr: form.hr,
+      type: form.type || 'Easy', felt: form.felt,
+      symptoms: form.symptoms.slice(), symptomNote: ($('#f-symnote').value || '').trim(),
+      before: form.before, foodNote: ($('#f-foodnote').value || '').trim(),
+      indoor: form.surface === 'Treadmill',
+      cond: form.surface === 'Treadmill' ? (form.cond.incline != null ? { incline: form.cond.incline } : {}) : (() => { const c = { ...form.cond }; delete c.incline; return c; })(),
+      routeId: form.surface === 'Treadmill' ? '' : (form.routeId || ''), surface: form.surface, shoesId: form.shoesId || '', sick: form.sick,
+      created: existing ? existing.created : new Date().toISOString(), updated: new Date().toISOString(), source: existing ? existing.source : 'manual'
+    };
+    await DB.put(run);
+    toast(existing ? 'Changes saved' : 'Run saved');
+    location.hash = '#/run/' + run.id;
+  });
+}
+
+/* ---------- Runs list ---------- */
+async function renderRuns(app) {
+  const runs = (await DB.runs()).sort((a, b) => b.started.localeCompare(a.started));
+  if (!runs.length) {
+    app.innerHTML = `<div class="head"><h1>Runs</h1>${GEAR}</div>
+      <div class="card empty"><p>No runs yet. Log your first one and it will show up here.</p><a href="#/log" class="secondary" style="display:inline-flex;align-items:center;text-decoration:none">Log a run</a></div>`;
+    return;
+  }
+  const thisWeek = weekStart(new Date()).getTime();
+  const groups = new Map();
+  runs.forEach(r => { const k = weekStart(r.started).getTime(); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); });
+  let html = `<div class="head"><h1>Runs</h1>${GEAR}</div><div class="list">`;
+  for (const [k, list] of groups) {
+    const miles = list.reduce((s, r) => s + (r.miles || 0), 0);
+    const label = k === thisWeek ? 'This week' : k === thisWeek - 7 * 864e5 ? 'Last week' : 'Week of ' + new Date(k).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    html += `<div class="week"><span>${label}</span><span class="mono" style="font-weight:500">${miles.toFixed(1)} mi</span></div>`;
+    html += list.map(r => `
+      <a class="card run-row" href="#/run/${r.id}">
+        <span class="main"><b>${fmtDay(r.started)}${r.indoor ? ' · Indoor' : ''}${settings.trackTypes && r.type !== 'Easy' ? ' · ' + esc(r.type) : ''}</b>
+        <span>${fmtPace(r)} /mi${r.hr ? ' · ' + r.hr + ' bpm' : ''}${r.symptoms && r.symptoms.length ? ' · <span style="color:var(--orange)">' + esc(r.symptoms[0]) + (r.symptoms.length > 1 ? ' +' + (r.symptoms.length - 1) : '') + '</span>' : ''}</span></span>
+        <span class="side"><span class="mono">${r.miles.toFixed(2)}</span>mi</span>
+      </a>`).join('');
+  }
+  app.innerHTML = html + '</div>';
+}
+
+/* ---------- Run detail ---------- */
+async function renderRun(app, id) {
+  const r = await DB.run(id);
+  if (!r) { app.innerHTML = `<a class="back" href="#/runs">Runs</a><div class="card empty"><p>This run isn’t on this phone anymore.</p></div>`; return; }
+  const rt = routes.find(x => x.id === r.routeId), sh = shoes.find(x => x.id === r.shoesId);
+  const bpm = beatsPerMile(r);
+  const elev = r.indoor ? null : ((r.cond && r.cond.elev) || (rt && rt.elev));
+  const c = r.cond || {};
+  const kv = (k, v) => v || v === 0 ? `<div class="kv"><span>${k}</span><span>${esc(v)}</span></div>` : '';
+  app.innerHTML = `
+    <a class="back" href="#/runs">← Runs</a>
+    <div class="head" style="align-items:flex-end"><div><div class="sub">${fmtDay(r.started)} at ${fmtTime(r.started)}${r.indoor ? ' · Indoor' : ''}${settings.trackTypes ? ' · ' + esc(r.type) : ''}</div><h1>${r.miles.toFixed(2)} miles</h1></div></div>
+    <div class="stack">
+      <div class="stats">
+        <div class="card stat"><span>Time</span><b>${fmtDur(r.duration)}</b></div>
+        <div class="card stat"><span>Pace /mi</span><b>${fmtPace(r)}</b></div>
+        <div class="card stat"><span>Avg HR</span><b>${r.hr || '—'}</b></div>
+        <div class="card stat"><span>Beats /mi</span><b>${bpm || '—'}</b></div>
+        <div class="card stat"><span>Effort</span><b>${r.felt}/10</b></div>
+        ${r.indoor ? `<div class="card stat"><span>Incline</span><b>${r.cond && r.cond.incline != null ? r.cond.incline + '%' : '—'}</b></div>` : `<div class="card stat"><span>Elevation</span><b>${elev ? '+' + elev : '—'}</b></div>`}
+      </div>
+      ${r.symptoms && r.symptoms.length ? `<div class="card pad stack"><h2>During the run</h2><div class="chips">${r.symptoms.map(s => `<span class="sym-tag">${esc(s)}</span>`).join('')}</div>${r.symptomNote ? `<div class="sub">“${esc(r.symptomNote)}”</div>` : ''}</div>` : ''}
+      <div class="card pad"><h2 style="margin-bottom:4px">Before the run</h2>
+        ${BEFORE.map(b => { const v = r.before && r.before[b.key]; return kv(b.q, Array.isArray(v) ? (v.length ? v.join(', ') : 'Not set') : v); }).join('')}
+        ${kv('Food note', r.foodNote)}
+      </div>
+      <div class="card pad"><h2 style="margin-bottom:4px">Conditions and gear</h2>
+        ${r.indoor ? kv('Where', 'Indoor, treadmill') : ''}${kv('Temperature', c.temp != null ? c.temp + '°F' : '')}${kv('Humidity', c.humidity != null ? c.humidity + '%' : '')}${kv('Dew point', c.dew != null ? c.dew + '°F' : '')}${kv('Wind', c.wind != null ? c.wind + ' mph' : '')}
+        ${r.indoor ? '' : kv('Route', rt ? rt.name : 'None')}${kv('Surface', r.surface)}${kv('Shoes', sh ? sh.name : '')}${r.sick ? kv('Feeling sick', 'Yes') : ''}
+      </div>
+      <div class="row" style="gap:10px">
+        <a class="secondary" href="#/edit/${r.id}" style="color:var(--ink);flex:1;display:inline-flex;align-items:center;justify-content:center;text-decoration:none">Edit run</a>
+        <button class="secondary danger" id="del-run" style="flex:1">Delete run</button>
+      </div>
+    </div>`;
+  $('#del-run').addEventListener('click', async () => {
+    if (!confirm('Delete this run? This can’t be undone.')) return;
+    await DB.del(r.id); toast('Run deleted'); location.hash = '#/runs';
+  });
+}
+
+/* ---------- Settings ---------- */
+async function renderSettings(app) {
+  const runs = await DB.runs();
+  const standalone = window.navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+  let persisted = false;
+  try { persisted = navigator.storage && await navigator.storage.persisted(); } catch (e) {}
+  const size = new Blob([JSON.stringify(runs)]).size;
+  app.innerHTML = `
+    <a class="back" href="#/log">← Back</a>
+    <div class="head"><h1>Settings</h1></div>
+
+    <div class="sec-title">Keep your runs safe</div>
+    <div class="card">
+      <div class="srow"><span class="t">Home Screen app<span>${standalone ? 'Installed. Safari won’t clear your runs.' : 'In Safari, tap Share, then Add to Home Screen. Without this, Safari can clear your runs after about a week unused.'}</span></span>${standalone ? '<span style="color:var(--blue);font-size:14px">On</span>' : ''}</div>
+      <div class="srow"><span class="t">On this phone<span>${runs.length} run${runs.length === 1 ? '' : 's'} · ${(size / 1024).toFixed(1)} KB${persisted ? ' · protected storage' : ''}</span></span></div>
+      <div class="srow"><span class="t">Back up now<span>Save a copy to Files or iCloud Drive</span></span><button class="small-btn dark" id="backup">Back up</button></div>
+      <div class="srow"><span class="t">Restore<span>From a PaceTrack backup file</span></span><label class="small-btn" style="display:inline-flex;align-items:center">Choose file<input type="file" accept=".json,application/json" id="restore" class="vh"></label></div>
+    </div>
+
+    <div class="sec-title">Logging</div>
+    <div class="card"><label class="srow toggle" style="margin:0"><span class="t">Track run types<span>${settings.trackTypes ? 'Pick easy, tempo, long and more when logging' : 'Off. Every run is saved as Easy.'}</span></span><input type="checkbox" id="s-types" ${settings.trackTypes ? 'checked' : ''}></label></div>
+
+    <div class="sec-title">Saved routes</div>
+    <div class="card">${routes.length ? routes.map(r => `<div class="srow"><span class="t">${esc(r.name)}<span>${r.elev ? '+' + r.elev + ' ft' : 'No elevation set'}</span></span><button class="small-btn danger" data-del-route="${r.id}">Remove</button></div>`).join('') : '<div class="srow"><span class="t"><span>Add routes from the Route list when you log a run.</span></span></div>'}</div>
+
+    <div class="sec-title">Shoes</div>
+    <div class="card">${shoes.length ? shoes.map(s => `<div class="srow"><span class="t">${esc(s.name)}<span>${runs.filter(r => r.shoesId === s.id).reduce((a, r) => a + r.miles, 0).toFixed(1)} mi logged</span></span><button class="small-btn danger" data-del-shoe="${s.id}">Remove</button></div>`).join('') : '<div class="srow"><span class="t"><span>Add shoes from the Shoes list when you log a run.</span></span></div>'}</div>
+
+    <div class="sec-title">Data</div>
+    <div class="card"><div class="srow"><span class="t">Delete all runs<span>Removes every run from this phone</span></span><button class="small-btn danger" id="wipe">Delete all</button></div></div>
+    <p class="hint" style="margin:16px 2px">PaceTrack keeps your runs on this phone only. Nothing is sent to a server.</p>`;
+
+  $('#s-types').addEventListener('change', async e => { settings.trackTypes = e.target.checked; await saveSettings(); renderSettings(app); });
+  $('#backup').addEventListener('click', () => backup(runs));
+  $('#restore').addEventListener('change', e => restore(e.target.files[0], app));
+  $$('[data-del-route]').forEach(b => b.addEventListener('click', async () => { if (!confirm('Remove this route? Runs keep their data.')) return; routes = routes.filter(r => r.id !== b.dataset.delRoute); await saveRoutes(); renderSettings(app); }));
+  $$('[data-del-shoe]').forEach(b => b.addEventListener('click', async () => { if (!confirm('Remove these shoes? Runs keep their data.')) return; shoes = shoes.filter(s => s.id !== b.dataset.delShoe); await saveShoes(); renderSettings(app); }));
+  $('#wipe').addEventListener('click', async () => {
+    if (!confirm('Delete all ' + runs.length + ' runs from this phone?')) return;
+    if (!confirm('Last check: back up first if you might want them. Delete everything?')) return;
+    await DB.clear(); toast('All runs deleted'); renderSettings(app);
+  });
+}
+
+async function backup(runs) {
+  const data = { app: 'PaceTrack', version: 1, exported: new Date().toISOString(), runs, routes, shoes, settings };
+  const name = 'pacetrack-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  const file = new File([JSON.stringify(data, null, 1)], name, { type: 'application/json' });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: name }); await DB.setMeta('lastBackup', data.exported); return; }
+  } catch (e) { if (e.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  await DB.setMeta('lastBackup', data.exported); toast('Backup saved');
+}
+
+async function restore(file, app) {
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    if (data.app !== 'PaceTrack' || !Array.isArray(data.runs)) throw new Error('not a backup');
+    if (!confirm(`Restore ${data.runs.length} runs from ${new Date(data.exported).toLocaleDateString()}? Runs already on this phone are kept; matching runs are replaced.`)) return;
+    for (const r of data.runs) await DB.put(r);
+    const merge = (cur, inc) => { const ids = new Set(cur.map(x => x.id)); return cur.concat((inc || []).filter(x => !ids.has(x.id))); };
+    routes = merge(routes, data.routes); shoes = merge(shoes, data.shoes);
+    await saveRoutes(); await saveShoes();
+    toast('Restored ' + data.runs.length + ' runs'); renderSettings(app);
+  } catch (e) { toast('That file isn’t a PaceTrack backup.'); }
+}
+
+/* ---------- Start ---------- */
+(async () => {
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+  await loadMeta();
+  window.addEventListener('hashchange', route);
+  route();
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>
