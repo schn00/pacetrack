@@ -161,6 +161,19 @@ details[open] > summary .pm::before { content: '−'; }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
 [hidden] { display: none !important; }
+.map-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 10px; align-items: center; border-top: 1px solid var(--soft); padding-top: 10px; }
+.map-src { display: flex; flex-direction: column; min-width: 0; }
+.map-src b { font-weight: 500; font-size: 14px; overflow-wrap: anywhere; }
+.map-src span { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+.map-row select.input { height: 40px; font-size: 14px; }
+.imp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center; }
+.imp-stats div { background: var(--soft); border-radius: 10px; padding: 8px 4px; }
+.imp-stats b { display: block; font-size: 20px; font-weight: 500; }
+.imp-stats span { font-size: 11px; color: var(--muted); }
+.imp-table { overflow-x: auto; }
+.imp-table table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.imp-table th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+.imp-table td { padding: 6px; border-bottom: 1px solid var(--soft); }
 .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 </style>
 </head>
@@ -244,7 +257,7 @@ function parseDuration(str) {
   return sec > 0 ? sec : null;
 }
 const fmtDur = sec => { if (!sec) return '—'; sec = Math.round(sec); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(s).padStart(2, '0'); };
-const paceSec = r => r.miles && r.duration ? r.duration / r.miles : null;
+const paceSec = r => r.pace || (r.miles && r.duration ? r.duration / r.miles : null);
 const fmtPace = r => { const p = paceSec(r); return p ? fmtDur(p) : '—'; };
 const beatsPerMile = r => r.hr && paceSec(r) ? Math.round(r.hr * paceSec(r) / 60) : null;
 const toLocalInput = d => { const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000); return z.toISOString().slice(0, 16); };
@@ -280,11 +293,12 @@ async function route() {
   const h = location.hash.replace(/^#\/?/, '') || 'log';
   const [view, id] = h.split('/');
   const app = $('#app');
-  $$('.tabbar a').forEach(a => a.setAttribute('aria-current', a.dataset.tab === (view === 'run' ? 'runs' : view === 'edit' ? 'log' : view) ? 'page' : 'false'));
+  $$('.tabbar a').forEach(a => a.setAttribute('aria-current', a.dataset.tab === (view === 'run' ? 'runs' : view === 'edit' ? 'log' : view === 'import' ? 'settings' : view) ? 'page' : 'false'));
   window.scrollTo(0, 0);
   if (view === 'runs') return renderRuns(app);
   if (view === 'run' && id) return renderRun(app, id);
   if (view === 'settings') return renderSettings(app);
+  if (view === 'import') return renderImport(app);
   if (view === 'edit' && id) return renderLog(app, await DB.run(id));
   return renderLog(app);
 }
@@ -304,6 +318,8 @@ async function renderLog(app, existing) {
     cond: {}, routeId: (all.find(r => !r.indoor && r.routeId) || {}).routeId || '', surface: (all.find(r => r.surface && r.surface !== 'Treadmill') || {}).surface || 'Road', shoesId: last ? last.shoesId || '' : '', sick: false, notes: ''
   };
   form._startedTouched = !!existing;
+  form._feltTouched = false; form._startedEdited = false;
+  if (form.felt == null) form.felt = 5;
   form._lastOutdoor = form.surface !== 'Treadmill' ? form.surface : 'Road';
   const startDate = existing ? new Date(existing.started) : new Date();
 
@@ -454,7 +470,11 @@ function updateLogSummaries() {
   if (!form.symptoms.length) ss.style.cssText = 'font-size:15px;font-weight:500;color:var(--ink)'; else ss.style.cssText = '';
   const b = form.before;
   const mt = (b.mealType || []).length ? ' (' + b.mealType.join(', ').toLowerCase() + ')' : '';
-  $('#before-sum').textContent = `${b.sleep} sleep · ate ${b.meal === 'Fasted' ? 'nothing (fasted)' : b.meal + ' before'}${mt} · ${b.water.toLowerCase()} water`;
+  const bp = [];
+  if (b.sleep) bp.push(b.sleep + ' sleep');
+  if (b.meal) bp.push(b.meal === 'Fasted' ? 'fasted' : 'ate ' + b.meal + ' before' + mt);
+  if (b.water) bp.push(b.water.toLowerCase() + ' water');
+  $('#before-sum').textContent = bp.length ? bp.join(' · ') : 'Not logged';
   const c = form.cond, parts = [];
   if (form.surface === 'Treadmill') {
     $('#cond-sum').textContent = 'Indoor, no weather' + (c.incline ? ' · ' + c.incline + '% incline' : '');
@@ -473,8 +493,8 @@ function bindLog(app, existing) {
   const f = $('#logform');
   ['#f-miles', '#f-time', '#f-hr'].forEach(s => $(s).addEventListener('input', readTimes));
   $('#f-time').addEventListener('blur', e => { const d = parseDuration(e.target.value); if (d) e.target.value = fmtDur(d); });
-  $('#f-started').addEventListener('input', () => { form._startedTouched = true; });
-  $('#f-felt').addEventListener('input', e => { form.felt = +e.target.value; paintEffort(); });
+  $('#f-started').addEventListener('input', () => { form._startedTouched = true; form._startedEdited = true; });
+  $('#f-felt').addEventListener('input', e => { form.felt = +e.target.value; form._feltTouched = true; paintEffort(); });
   paintEffort();
   const ty = $('#f-type'); if (ty) ty.addEventListener('change', e => { form.type = e.target.value; });
 
@@ -547,7 +567,10 @@ function bindLog(app, existing) {
       id: form.id || uid(),
       started: (isNaN(started) ? new Date() : started).toISOString(),
       miles: form.miles, duration: form.duration, hr: form.hr,
-      type: form.type || 'Easy', felt: form.felt,
+      type: form.type || 'Easy', felt: existing && existing.felt == null && !form._feltTouched ? null : form.felt,
+      timeUnknown: existing && existing.timeUnknown && !form._startedEdited ? true : undefined,
+      pace: existing && existing.pace && existing.miles === form.miles && existing.duration === form.duration ? existing.pace : undefined,
+      power: existing ? existing.power : undefined, cadence: existing ? existing.cadence : undefined, notes: existing ? existing.notes : undefined,
       symptoms: form.symptoms.slice(), symptomNote: ($('#f-symnote').value || '').trim(),
       before: form.before, foodNote: ($('#f-foodnote').value || '').trim(),
       indoor: form.surface === 'Treadmill',
@@ -598,24 +621,25 @@ async function renderRun(app, id) {
   const kv = (k, v) => v || v === 0 ? `<div class="kv"><span>${k}</span><span>${esc(v)}</span></div>` : '';
   app.innerHTML = `
     <a class="back" href="#/runs">← Runs</a>
-    <div class="head" style="align-items:flex-end"><div><div class="sub">${fmtDay(r.started)} at ${fmtTime(r.started)}${r.indoor ? ' · Indoor' : ''}${settings.trackTypes ? ' · ' + esc(r.type) : ''}</div><h1>${r.miles.toFixed(2)} miles</h1></div></div>
+    <div class="head" style="align-items:flex-end"><div><div class="sub">${fmtDay(r.started)}${r.timeUnknown ? '' : ' at ' + fmtTime(r.started)}${r.indoor ? ' · Indoor' : ''}${settings.trackTypes ? ' · ' + esc(r.type) : ''}</div><h1>${r.miles.toFixed(2)} miles</h1></div></div>
     <div class="stack">
       <div class="stats">
         <div class="card stat"><span>Time</span><b>${fmtDur(r.duration)}</b></div>
         <div class="card stat"><span>Pace /mi</span><b>${fmtPace(r)}</b></div>
         <div class="card stat"><span>Avg HR</span><b>${r.hr || '—'}</b></div>
         <div class="card stat"><span>Beats /mi</span><b>${bpm || '—'}</b></div>
-        <div class="card stat"><span>Effort</span><b>${r.felt}/10</b></div>
+        <div class="card stat"><span>Effort</span><b>${r.felt ? r.felt + '/10' : '—'}</b></div>
         ${r.indoor ? `<div class="card stat"><span>Incline</span><b>${r.cond && r.cond.incline != null ? r.cond.incline + '%' : '—'}</b></div>` : `<div class="card stat"><span>Elevation</span><b>${elev ? '+' + elev : '—'}</b></div>`}
       </div>
       ${r.symptoms && r.symptoms.length ? `<div class="card pad stack"><h2>During the run</h2><div class="chips">${r.symptoms.map(s => `<span class="sym-tag">${esc(s)}</span>`).join('')}</div>${r.symptomNote ? `<div class="sub">“${esc(r.symptomNote)}”</div>` : ''}</div>` : ''}
       <div class="card pad"><h2 style="margin-bottom:4px">Before the run</h2>
-        ${BEFORE.map(b => { const v = r.before && r.before[b.key]; return kv(b.q, Array.isArray(v) ? (v.length ? v.join(', ') : 'Not set') : v); }).join('')}
+        ${!r.before || !Object.keys(r.before).length ? '<div class="sub" style="padding-top:4px">Not logged for this run.</div>' : ''}
+        ${Object.keys(r.before || {}).length === 0 ? '' : BEFORE.map(b => { const v = r.before && r.before[b.key]; return kv(b.q, Array.isArray(v) ? (v.length ? v.join(', ') : 'Not set') : v); }).join('')}
         ${kv('Food note', r.foodNote)}
       </div>
       <div class="card pad"><h2 style="margin-bottom:4px">Conditions and gear</h2>
         ${r.indoor ? kv('Where', 'Indoor, treadmill') : ''}${kv('Temperature', c.temp != null ? c.temp + '°F' : '')}${kv('Humidity', c.humidity != null ? c.humidity + '%' : '')}${kv('Dew point', c.dew != null ? c.dew + '°F' : '')}${kv('Wind', c.wind != null ? c.wind + ' mph' : '')}
-        ${r.indoor ? '' : kv('Route', rt ? rt.name : 'None')}${kv('Surface', r.surface)}${kv('Shoes', sh ? sh.name : '')}${r.sick ? kv('Feeling sick', 'Yes') : ''}
+        ${r.indoor ? '' : kv('Route', rt ? rt.name : 'None')}${kv('Surface', r.surface)}${kv('Shoes', sh ? sh.name : '')}${r.sick ? kv('Feeling sick', 'Yes') : ''}${kv('Avg power', r.power ? r.power + ' w' : '')}${kv('Cadence', r.cadence ? r.cadence + ' spm' : '')}${kv('Notes', r.notes)}${r.source === 'import' ? kv('Source', 'Imported') : ''}
       </div>
       <div class="row" style="gap:10px">
         <a class="secondary" href="#/edit/${r.id}" style="color:var(--ink);flex:1;display:inline-flex;align-items:center;justify-content:center;text-decoration:none">Edit run</a>
@@ -635,6 +659,7 @@ async function renderSettings(app) {
   let persisted = false;
   try { persisted = navigator.storage && await navigator.storage.persisted(); } catch (e) {}
   const size = new Blob([JSON.stringify(runs)]).size;
+  const lastImport = await DB.getMeta('lastImport');
   app.innerHTML = `
     <a class="back" href="#/log">← Back</a>
     <div class="head"><h1>Settings</h1></div>
@@ -645,6 +670,12 @@ async function renderSettings(app) {
       <div class="srow"><span class="t">On this phone<span>${runs.length} run${runs.length === 1 ? '' : 's'} · ${(size / 1024).toFixed(1)} KB${persisted ? ' · protected storage' : ''}</span></span></div>
       <div class="srow"><span class="t">Back up now<span>Save a copy to Files or iCloud Drive</span></span><button class="small-btn dark" id="backup">Back up</button></div>
       <div class="srow"><span class="t">Restore<span>From a PaceTrack backup file</span></span><label class="small-btn" style="display:inline-flex;align-items:center">Choose file<input type="file" accept=".json,application/json" id="restore" class="vh"></label></div>
+    </div>
+
+    <div class="sec-title">Import and export</div>
+    <div class="card">
+      <div class="srow"><span class="t">Import running log<span>${lastImport ? 'Last: ' + lastImport.count + ' runs from ' + esc(lastImport.file) : 'From Excel (.xlsx) or CSV'}</span></span><a class="small-btn dark" href="#/import" style="display:inline-flex;align-items:center;text-decoration:none">Import</a></div>
+      <div class="srow"><span class="t">Export to Excel<span>Every run and field as a spreadsheet</span></span><button class="small-btn" id="export">Export</button></div>
     </div>
 
     <div class="sec-title">Appearance</div>
@@ -666,6 +697,7 @@ async function renderSettings(app) {
   $$('[data-theme-opt]').forEach(b => b.addEventListener('click', async () => { settings.theme = b.dataset.themeOpt; await saveSettings(); applyTheme(); paintEffort(); $$('[data-theme-opt]').forEach(x => x.setAttribute('aria-pressed', x === b)); }));
   $('#s-types').addEventListener('change', async e => { settings.trackTypes = e.target.checked; await saveSettings(); renderSettings(app); });
   $('#backup').addEventListener('click', () => backup(runs));
+  $('#export').addEventListener('click', exportExcel);
   $('#restore').addEventListener('change', e => restore(e.target.files[0], app));
   $$('[data-del-route]').forEach(b => b.addEventListener('click', async () => { if (!confirm('Remove this route? Runs keep their data.')) return; routes = routes.filter(r => r.id !== b.dataset.delRoute); await saveRoutes(); renderSettings(app); }));
   $$('[data-del-shoe]').forEach(b => b.addEventListener('click', async () => { if (!confirm('Remove these shoes? Runs keep their data.')) return; shoes = shoes.filter(s => s.id !== b.dataset.delShoe); await saveShoes(); renderSettings(app); }));
@@ -700,6 +732,394 @@ async function restore(file, app) {
     await saveRoutes(); await saveShoes();
     toast('Restored ' + data.runs.length + ' runs'); renderSettings(app);
   } catch (e) { toast('That file isn’t a PaceTrack backup.'); }
+}
+
+/* ---------- Spreadsheet: zip + xlsx reader/writer (no dependencies) ---------- */
+const Sheet = (() => {
+  const dv = u8 => new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+  async function inflateRaw(u8) {
+    const ds = new DecompressionStream('deflate-raw');
+    const out = new Response(new Blob([u8]).stream().pipeThrough(ds));
+    return new Uint8Array(await out.arrayBuffer());
+  }
+  async function unzip(buf) {
+    const u8 = new Uint8Array(buf), v = dv(u8);
+    let eocd = -1;
+    for (let i = u8.length - 22; i >= Math.max(0, u8.length - 65557); i--) if (v.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+    if (eocd < 0) throw new Error('not a zip');
+    const count = v.getUint16(eocd + 10, true); let p = v.getUint32(eocd + 16, true);
+    const files = {}, dec = new TextDecoder();
+    for (let n = 0; n < count; n++) {
+      const method = v.getUint16(p + 10, true), csize = v.getUint32(p + 20, true);
+      const nlen = v.getUint16(p + 28, true), elen = v.getUint16(p + 30, true), clen = v.getUint16(p + 32, true);
+      const off = v.getUint32(p + 42, true), name = dec.decode(u8.subarray(p + 46, p + 46 + nlen));
+      files[name] = { method, csize, off }; p += 46 + nlen + elen + clen;
+    }
+    return async name => {
+      const f = files[name]; if (!f) return null;
+      const start = f.off + 30 + v.getUint16(f.off + 26, true) + v.getUint16(f.off + 28, true);
+      const data = u8.subarray(start, start + f.csize);
+      return dec.decode(f.method === 8 ? await inflateRaw(data) : data);
+    };
+  }
+  const xml = s => new DOMParser().parseFromString(s, 'application/xml');
+  const tags = (node, name) => [...node.getElementsByTagNameNS('*', name)];
+  const BUILTIN_FMT = { 9: '0%', 10: '0.00%', 14: 'yyyy-mm-dd', 15: 'd-mmm-yy', 16: 'd-mmm', 17: 'mmm-yy', 18: 'h:mm AM/PM', 19: 'h:mm:ss AM/PM', 20: 'h:mm', 21: 'h:mm:ss', 22: 'm/d/yy h:mm', 45: 'mm:ss', 46: '[h]:mm:ss', 47: 'mm:ss.0' };
+  const colIndex = ref => { let n = 0; for (const ch of ref.replace(/\d+/g, '')) n = n * 26 + ch.charCodeAt(0) - 64; return n - 1; };
+
+  async function readXlsx(buf) {
+    const get = await unzip(buf);
+    const wb = xml(await get('xl/workbook.xml'));
+    const rels = xml(await get('xl/_rels/workbook.xml.rels'));
+    const relMap = {}; tags(rels, 'Relationship').forEach(r => { relMap[r.getAttribute('Id')] = r.getAttribute('Target'); });
+    const ss = []; const ssx = await get('xl/sharedStrings.xml');
+    if (ssx) tags(xml(ssx), 'si').forEach(si => ss.push(tags(si, 't').map(t => t.textContent).join('')));
+    const fmts = []; const stx = await get('xl/styles.xml');
+    if (stx) {
+      const st = xml(stx), custom = {};
+      tags(st, 'numFmt').forEach(f => { custom[f.getAttribute('numFmtId')] = f.getAttribute('formatCode'); });
+      const cx = tags(st, 'cellXfs')[0];
+      if (cx) tags(cx, 'xf').forEach(xf => { const id = xf.getAttribute('numFmtId') || '0'; fmts.push(custom[id] || BUILTIN_FMT[id] || 'General'); });
+    }
+    const sheets = [];
+    for (const s of tags(wb, 'sheet')) {
+      const rid = s.getAttribute('r:id') || s.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id');
+      let target = relMap[rid] || ''; target = target.replace(/^\/?xl\//, '').replace(/^\//, '');
+      const sx = await get('xl/' + target); if (!sx) continue;
+      const rows = [];
+      tags(xml(sx), 'row').forEach(row => {
+        const r = +row.getAttribute('r') - 1, cells = [];
+        tags(row, 'c').forEach(c => {
+          const t = c.getAttribute('t'), vEl = tags(c, 'v')[0], fmt = fmts[+(c.getAttribute('s') || 0)] || 'General';
+          let v = null;
+          if (t === 's') v = vEl ? ss[+vEl.textContent] : null;
+          else if (t === 'inlineStr') v = tags(c, 't').map(x => x.textContent).join('');
+          else if (t === 'str' || t === 'e') v = vEl ? vEl.textContent : null;
+          else if (t === 'b') v = vEl ? vEl.textContent === '1' : null;
+          else if (vEl && vEl.textContent !== '') v = +vEl.textContent;
+          if (v !== null && v !== '') cells[colIndex(c.getAttribute('r'))] = { v, fmt };
+        });
+        rows[r] = cells;
+      });
+      sheets.push({ name: s.getAttribute('name'), rows: Array.from(rows, r => r || []) });
+    }
+    return sheets;
+  }
+
+  function readCsv(text) {
+    const rows = []; let row = [], cur = '', q = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (q) { if (ch === '"' && text[i + 1] === '"') { cur += '"'; i++; } else if (ch === '"') q = false; else cur += ch; }
+      else if (ch === '"') q = true;
+      else if (ch === ',') { row.push(cur); cur = ''; }
+      else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(cur); rows.push(row); row = []; cur = ''; }
+      else cur += ch;
+    }
+    if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
+    return [{ name: 'CSV', rows: rows.map(r => r.map(v => v.trim() === '' ? undefined : { v: v.trim(), fmt: 'General' })) }];
+  }
+
+  /* writer */
+  const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  const crc32 = u8 => { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  function zip(files) {
+    const enc = new TextEncoder(), parts = [], central = []; let offset = 0;
+    for (const [name, text] of files) {
+      const data = enc.encode(text), nm = enc.encode(name), crc = crc32(data);
+      const h = new Uint8Array(30 + nm.length), hv = dv(h);
+      hv.setUint32(0, 0x04034b50, true); hv.setUint16(4, 20, true); hv.setUint32(14, crc, true);
+      hv.setUint32(18, data.length, true); hv.setUint32(22, data.length, true); hv.setUint16(26, nm.length, true); h.set(nm, 30);
+      const c = new Uint8Array(46 + nm.length), cv = dv(c);
+      cv.setUint32(0, 0x02014b50, true); cv.setUint16(4, 20, true); cv.setUint16(6, 20, true); cv.setUint32(16, crc, true);
+      cv.setUint32(20, data.length, true); cv.setUint32(24, data.length, true); cv.setUint16(28, nm.length, true); cv.setUint32(42, offset, true); c.set(nm, 46);
+      parts.push(h, data); central.push(c); offset += h.length + data.length;
+    }
+    const csize = central.reduce((a, c) => a + c.length, 0), e = new Uint8Array(22), ev = dv(e);
+    ev.setUint32(0, 0x06054b50, true); ev.setUint16(8, files.length, true); ev.setUint16(10, files.length, true); ev.setUint32(12, csize, true); ev.setUint32(16, offset, true);
+    return new Blob([...parts, ...central, e], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  }
+  const xesc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+  const colName = i => { let s = ''; i++; while (i) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
+  // columns: [{ header, width, style: 'date'|'dur'|'pace'|'num1'|'num2'|'int'|'text' }], rows: arrays of values
+  function writeXlsx(sheetName, columns, rows) {
+    const S = { text: 0, header: 1, date: 2, dur: 3, pace: 4, num1: 5, num2: 6, int: 7, time: 8 };
+    const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<numFmts count="6"><numFmt numFmtId="169" formatCode="0.0"/><numFmt numFmtId="164" formatCode="yyyy\\-mm\\-dd"/><numFmt numFmtId="165" formatCode="[h]:mm:ss"/><numFmt numFmtId="166" formatCode="[m]:ss"/><numFmt numFmtId="167" formatCode="0.00"/><numFmt numFmtId="168" formatCode="h:mm AM/PM"/></numFmts>
+<fonts count="2"><font><sz val="11"/><name val="Arial"/></font><font><b/><sz val="11"/><name val="Arial"/></font></fonts>
+<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>
+<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="9"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="166" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="169" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="167" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="1" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="168" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs>
+<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+</styleSheet>`;
+    const cell = (ref, v, st) => {
+      if (v === null || v === undefined || v === '') return '';
+      if (typeof v === 'number' && isFinite(v)) return `<c r="${ref}" s="${st}"><v>${v}</v></c>`;
+      return `<c r="${ref}" s="${st === S.header ? S.header : S.text}" t="inlineStr"><is><t xml:space="preserve">${xesc(v)}</t></is></c>`;
+    };
+    let sd = '<row r="1">' + columns.map((c, i) => cell(colName(i) + '1', c.header, S.header)).join('') + '</row>';
+    rows.forEach((r, ri) => { sd += `<row r="${ri + 2}">` + r.map((v, i) => cell(colName(i) + (ri + 2), v, S[columns[i].style] ?? 0)).join('') + '</row>'; });
+    const cols = '<cols>' + columns.map((c, i) => `<col min="${i + 1}" max="${i + 1}" width="${c.width || 12}" customWidth="1"/>`).join('') + '</cols>';
+    const sheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>${cols}<sheetData>${sd}</sheetData></worksheet>`;
+    return zip([
+      ['[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`],
+      ['_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
+      ['xl/workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${xesc(sheetName)}" sheetId="1" r:id="rId1"/></sheets></workbook>`],
+      ['xl/_rels/workbook.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`],
+      ['xl/styles.xml', styles],
+      ['xl/worksheets/sheet1.xml', sheet],
+    ]);
+  }
+  return { readXlsx, readCsv, writeXlsx };
+})();
+
+/* ---------- Import ---------- */
+const FIELDS = [
+  ['skip', 'Skip'], ['date', 'Date'], ['duration', 'Time (duration)'], ['miles', 'Distance (miles)'], ['km', 'Distance (km)'],
+  ['pace', 'Pace (per mile)'], ['pacekm', 'Pace (per km)'], ['hr', 'Avg heart rate'], ['elev', 'Elevation gain (ft)'],
+  ['power', 'Power (watts)'], ['cadence', 'Cadence (spm)'], ['temp', 'Temperature (°F)'], ['humidity', 'Humidity'],
+  ['wind', 'Wind (mph)'], ['effort', 'Effort (1–10)'], ['notes', 'Notes'],
+];
+function guessField(h) {
+  const s = String(h || '').toLowerCase();
+  if (!s) return 'skip';
+  if (/beats\s*(per|\/)\s*mile|status|score|split/.test(s)) return 'skip';
+  if (/pace/.test(s)) return /km/.test(s) ? 'pacekm' : 'pace';
+  if (/date|day/.test(s)) return 'date';
+  if (/dist|mileage|\bmiles?\b|\bkm\b|kilomet/.test(s)) return /\bkm\b|kilomet/.test(s) ? 'km' : 'miles';
+  if (/heart|\bhr\b|bpm/.test(s)) return 'hr';
+  if (/elev|gain|climb|ascent/.test(s)) return 'elev';
+  if (/power|watt/.test(s)) return 'power';
+  if (/cadence|spm|steps/.test(s)) return 'cadence';
+  if (/temp/.test(s)) return 'temp';
+  if (/humid/.test(s)) return 'humidity';
+  if (/wind/.test(s)) return 'wind';
+  if (/effort|rpe|felt/.test(s)) return 'effort';
+  if (/note|comment/.test(s)) return 'notes';
+  if (/time|duration/.test(s)) return 'duration';
+  return 'skip';
+}
+const cellText = c => c == null ? '' : typeof c.v === 'number' ? String(Math.round(c.v * 1000) / 1000) : String(c.v);
+const isTimeFmt = f => /h|s|\[m\]/i.test(f.replace(/"[^"]*"/g, '')) && /:/.test(f);
+const isDateFmt = f => { const g = f.replace(/"[^"]*"|\[[^\]]*\]/g, ''); return /[yd]/i.test(g) || (/m/i.test(g) && !/[hs:]/i.test(g)); };
+function serialToDate(n) { const ms = Math.round((n - 25569) * 864e5); const u = new Date(ms); return new Date(u.getUTCFullYear(), u.getUTCMonth(), u.getUTCDate(), 12, 0, 0); }
+function cellDate(c) {
+  if (!c) return null;
+  if (typeof c.v === 'number') return c.v > 20000 && c.v < 80000 ? serialToDate(c.v) : null;
+  const s = String(c.v).trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if (m) return new Date(+m[1], m[2] - 1, +m[3], 12);
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/); if (m) { const y = +m[3] < 100 ? 2000 + +m[3] : +m[3]; return new Date(y, m[1] - 1, +m[2], 12); }
+  const d = new Date(s); return isNaN(d) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12);
+}
+function cellSeconds(c, minutesIfPlain) {
+  if (!c) return null;
+  if (typeof c.v === 'number') {
+    if (isTimeFmt(c.fmt) || (c.v > 0 && c.v < 1)) return Math.round(c.v * 86400);
+    return c.v > 0 ? Math.round(c.v * 60) : null;
+  }
+  return parseDuration(c.v);
+}
+function cellNum(c) {
+  if (!c) return null;
+  if (typeof c.v === 'number') return isTimeFmt(c.fmt) || isDateFmt(c.fmt) ? NaN : c.v;
+  const n = num(String(c.v).replace(/[^0-9.,-]/g, '')); return n === null ? NaN : n;
+}
+
+let imp = null;
+async function renderImport(app) {
+  app.innerHTML = `
+    <a class="back" href="#/settings">← Settings</a>
+    <div class="head"><h1>Import runs</h1></div>
+    <div class="stack">
+      <div class="card pad stack">
+        <div><h2>Your running log</h2><div class="hint" style="margin-top:4px">Excel (.xlsx) or CSV. The file is read on this phone and never uploaded.</div></div>
+        <label class="secondary" style="display:inline-flex;align-items:center;justify-content:center;align-self:flex-start">Choose file<input type="file" id="imp-file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="vh"></label>
+        <div id="imp-src"></div>
+      </div>
+      <div id="imp-map"></div>
+      <div id="imp-preview"></div>
+    </div>`;
+  $('#imp-file').addEventListener('change', async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try {
+      const sheets = /\.csv$/i.test(f.name) ? Sheet.readCsv(await f.text()) : await Sheet.readXlsx(await f.arrayBuffer());
+      if (!sheets.length) throw new Error('empty');
+      imp = { name: f.name, sheets, sheet: 0 };
+      pickSheet(0);
+    } catch (err) {
+      $('#imp-src').innerHTML = `<div class="err">Couldn’t read that file. Save it as .xlsx or .csv and try again.</div>`;
+    }
+  });
+}
+
+function detectHeader(rows) {
+  let best = 0, score = -1;
+  for (let i = 0; i < Math.min(rows.length, 15); i++) {
+    const r = rows[i] || [];
+    const s = r.filter(c => c && typeof c.v === 'string' && guessField(c.v) !== 'skip').length * 3 + r.filter(c => c && typeof c.v === 'string').length;
+    if (s > score) { score = s; best = i; }
+  }
+  return best;
+}
+
+async function pickSheet(i) {
+  imp.sheet = i; const rows = imp.sheets[i].rows;
+  imp.headerRow = detectHeader(rows);
+  const saved = (await DB.getMeta('importMaps')) || {};
+  buildColumns(saved);
+  renderImportSource(); renderMapping(); renderPreview();
+}
+
+function buildColumns(saved) {
+  const rows = imp.sheets[imp.sheet].rows, hdr = rows[imp.headerRow] || [];
+  imp.columns = [];
+  hdr.forEach((c, i) => {
+    if (!c || typeof c.v !== 'string') return;
+    const sample = rows.slice(imp.headerRow + 1).map(r => r && r[i]).find(Boolean);
+    imp.columns.push({ i, header: c.v.trim(), sample, field: guessField(c.v) });
+  });
+  const sig = imp.columns.map(c => c.header).join('|');
+  if (saved[sig]) imp.columns.forEach(c => { if (saved[sig][c.header]) c.field = saved[sig][c.header]; });
+  imp.sig = sig;
+}
+
+function renderImportSource() {
+  const s = imp.sheets[imp.sheet];
+  $('#imp-src').innerHTML = `
+    <div class="kv"><span>File</span><span>${esc(imp.name)}</span></div>
+    ${imp.sheets.length > 1 ? `<label class="label">Sheet<select class="input" id="imp-sheet">${imp.sheets.map((x, i) => `<option value="${i}"${i === imp.sheet ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label>` : ''}
+    <label class="label">Header row<select class="input" id="imp-hdr">${s.rows.slice(0, 15).map((r, i) => `<option value="${i}"${i === imp.headerRow ? ' selected' : ''}>Row ${i + 1}: ${esc((r || []).filter(Boolean).slice(0, 3).map(cellText).join(', ').slice(0, 40)) || '(empty)'}</option>`).join('')}</select></label>`;
+  const sh = $('#imp-sheet'); if (sh) sh.addEventListener('change', e => pickSheet(+e.target.value));
+  $('#imp-hdr').addEventListener('change', async e => { imp.headerRow = +e.target.value; buildColumns((await DB.getMeta('importMaps')) || {}); renderMapping(); renderPreview(); });
+}
+
+function sampleText(c) {
+  if (!c.sample) return '';
+  const s = c.sample;
+  if (typeof s.v === 'number') {
+    if (c.field === 'date' || isDateFmt(s.fmt) && s.v > 20000) { const d = cellDate(s); return d ? d.toLocaleDateString() : cellText(s); }
+    if (isTimeFmt(s.fmt)) return fmtDur(s.v * 86400);
+    if (/%/.test(s.fmt)) return Math.round(s.v * 100) + '%';
+  }
+  return cellText(s);
+}
+
+function renderMapping() {
+  $('#imp-map').innerHTML = `<div class="card pad stack">
+    <div><h2>Match your columns</h2><div class="hint" style="margin-top:4px">Check each guess. Columns set to Skip aren’t imported.</div></div>
+    ${imp.columns.map((c, k) => `<div class="map-row"><div class="map-src"><b>${esc(c.header)}</b><span>${esc(sampleText(c))}</span></div>
+      <select class="input" data-map="${k}" aria-label="${esc(c.header)} maps to">${FIELDS.map(([v, l]) => `<option value="${v}"${v === c.field ? ' selected' : ''}>${l}</option>`).join('')}</select></div>`).join('')}
+  </div>`;
+  $$('[data-map]').forEach(s => s.addEventListener('change', e => { imp.columns[+e.target.dataset.map].field = e.target.value; renderPreview(); }));
+}
+
+function parseRows(existing) {
+  const rows = imp.sheets[imp.sheet].rows.slice(imp.headerRow + 1);
+  const by = {}; imp.columns.forEach(c => { if (c.field !== 'skip' && !(c.field in by)) by[c.field] = c.i; });
+  const out = { ok: [], fixed: [], skipped: [], dups: 0 };
+  const seen = existing.map(r => ({ day: new Date(r.started).toDateString(), miles: r.miles }));
+  rows.forEach((r, k) => {
+    if (!r) return;
+    const cell = f => by[f] != null ? r[by[f]] : undefined;
+    const mapped = Object.keys(by).map(cell).filter(Boolean);
+    if (!mapped.length) return;
+    const rowNo = imp.headerRow + 2 + k;
+    const date = cellDate(cell('date'));
+    if (!date) { out.skipped.push({ rowNo, why: 'no readable date' }); return; }
+    let duration = cellSeconds(cell('duration'), false);
+    let pace = by.pace != null ? cellSeconds(cell('pace'), true) : by.pacekm != null ? (cellSeconds(cell('pacekm'), true) || 0) * 1.609344 || null : null;
+    let miles = by.miles != null ? cellNum(cell('miles')) : by.km != null ? cellNum(cell('km')) * 0.621371 : null;
+    let fix = null;
+    const badMiles = !(miles > 0 && miles < 200);
+    if (badMiles) {
+      if (duration && pace) { const raw = cell('miles') || cell('km'); miles = Math.round(duration / pace * 100) / 100; fix = `Distance ${raw ? '“' + (isTimeFmt(raw.fmt) ? fmtDur(raw.v * 86400).replace(/:00$/, '') : cellText(raw)) + '” wasn’t a number' : 'was missing'}, so it’s set to ${miles.toFixed(2)} mi from time ÷ pace.`; }
+      else { out.skipped.push({ rowNo, date, why: 'no usable distance' }); return; }
+    }
+    if (!duration && pace && miles) { duration = Math.round(pace * miles); fix = fix || `Time was missing, so it’s set to ${fmtDur(duration)} from pace × distance.`; }
+    if (!duration) { out.skipped.push({ rowNo, date, why: 'no usable time' }); return; }
+    if (seen.some(s => s.day === date.toDateString() && Math.abs(s.miles - miles) < 0.03)) { out.dups++; return; }
+    const n = f => { const v = cellNum(cell(f)); return isFinite(v) && v !== null ? v : null; };
+    let hum = n('humidity'); if (hum != null && hum <= 1) hum = Math.round(hum * 100);
+    const cond = {}; const t = n('temp'), el = n('elev'), w = n('wind');
+    if (t != null) cond.temp = Math.round(t); if (hum != null) cond.humidity = Math.round(hum); if (el != null) cond.elev = Math.round(el); if (w != null) cond.wind = w;
+    const eff = n('effort');
+    const run = {
+      id: uid(), started: date.toISOString(), timeUnknown: true, miles: Math.round(miles * 100) / 100, duration, pace: pace || null,
+      hr: n('hr') ? Math.round(n('hr')) : null, type: 'Easy', felt: eff >= 1 && eff <= 10 ? Math.round(eff) : null,
+      symptoms: [], symptomNote: '', before: {}, foodNote: '', indoor: false, cond, routeId: '', surface: 'Road', shoesId: '', sick: false,
+      power: n('power') ? Math.round(n('power')) : null, cadence: n('cadence') ? Math.round(n('cadence')) : null,
+      notes: cell('notes') ? cellText(cell('notes')) : '', source: 'import', created: new Date().toISOString(), updated: new Date().toISOString()
+    };
+    seen.push({ day: date.toDateString(), miles: run.miles });
+    (fix ? out.fixed : out.ok).push(fix ? { run, rowNo, fix } : run);
+  });
+  return out;
+}
+
+async function renderPreview() {
+  const hasDate = imp.columns.some(c => c.field === 'date');
+  const hasDist = imp.columns.some(c => ['miles', 'km'].includes(c.field)) || (imp.columns.some(c => c.field === 'duration') && imp.columns.some(c => /^pace/.test(c.field)));
+  const box = $('#imp-preview');
+  if (!hasDate || !hasDist) { box.innerHTML = `<div class="card pad"><div class="err">Match at least a Date column and a Distance column to continue.</div></div>`; return; }
+  const res = parseRows(await DB.runs()); imp.result = res;
+  const all = res.ok.concat(res.fixed.map(f => f.run)).sort((a, b) => a.started.localeCompare(b.started));
+  const first = all[0], last = all[all.length - 1];
+  box.innerHTML = `<div class="card pad stack">
+    <h2>Preview</h2>
+    <div class="imp-stats">
+      <div><b class="mono">${all.length}</b><span>ready</span></div>
+      <div><b class="mono">${res.fixed.length}</b><span>fixed</span></div>
+      <div><b class="mono">${res.dups}</b><span>already here</span></div>
+      <div><b class="mono">${res.skipped.length}</b><span>skipped</span></div>
+    </div>
+    ${all.length ? `<div class="hint">${fmtDay(first.started)} to ${fmtDay(last.started)} · ${all.reduce((a, r) => a + r.miles, 0).toFixed(1)} miles</div>` : ''}
+    ${res.fixed.map(f => `<div class="note">Row ${f.rowNo} (${fmtDay(f.run.started)}): ${esc(f.fix)}</div>`).join('')}
+    ${res.skipped.map(s => `<div class="note" style="color:var(--muted);background:var(--soft)">Row ${s.rowNo}${s.date ? ' (' + fmtDay(s.date.toISOString()) + ')' : ''}: skipped, ${esc(s.why)}.</div>`).join('')}
+    ${all.length ? `<div class="imp-table"><table><thead><tr><th>Date</th><th>Miles</th><th>Time</th><th>Pace</th><th>HR</th></tr></thead><tbody>${all.slice(-5).reverse().map(r => `<tr><td>${new Date(r.started).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</td><td class="mono">${r.miles.toFixed(2)}</td><td class="mono">${fmtDur(r.duration)}</td><td class="mono">${fmtPace(r)}</td><td class="mono">${r.hr || '—'}</td></tr>`).join('')}</tbody></table><div class="hint" style="margin-top:6px">Latest 5 shown.</div></div>` : ''}
+    <div class="hint">Sleep, food and other “before the run” details stay blank on imported runs. Humidity written as a fraction (0.70) is read as 70%.</div>
+    <button class="primary" id="imp-go" ${all.length ? '' : 'disabled'}>Import ${all.length} run${all.length === 1 ? '' : 's'}</button>
+  </div>`;
+  $('#imp-go').addEventListener('click', async () => {
+    for (const r of all) await DB.put(r);
+    const maps = (await DB.getMeta('importMaps')) || {};
+    maps[imp.sig] = Object.fromEntries(imp.columns.map(c => [c.header, c.field]));
+    await DB.setMeta('importMaps', maps);
+    await DB.setMeta('lastImport', { at: new Date().toISOString(), count: all.length, file: imp.name });
+    toast(`Imported ${all.length} runs`); imp = null; location.hash = '#/runs';
+  });
+}
+
+/* ---------- Export ---------- */
+async function exportExcel() {
+  const runs = (await DB.runs()).sort((a, b) => a.started.localeCompare(b.started));
+  if (!runs.length) { toast('No runs to export yet'); return; }
+  const rname = id => (routes.find(r => r.id === id) || {}).name || '';
+  const sname = id => (shoes.find(s => s.id === id) || {}).name || '';
+  const excelDate = iso => { const d = new Date(iso); return (Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5) + 25569; };
+  const excelTime = iso => { const d = new Date(iso); return (d.getHours() * 3600 + d.getMinutes() * 60) / 86400; };
+  const cols = [
+    ['Date', 12, 'date', r => excelDate(r.started)], ['Start time', 11, 'time', r => r.timeUnknown ? '' : excelTime(r.started)],
+    ['Miles', 8, 'num2', r => r.miles], ['Time', 10, 'dur', r => r.duration / 86400], ['Pace (/mi)', 10, 'pace', r => paceSec(r) / 86400],
+    ['Avg HR', 8, 'int', r => r.hr], ['Beats per mile', 13, 'int', r => beatsPerMile(r)], ['Effort (1-10)', 11, 'int', r => r.felt],
+    ['Indoor', 8, 'text', r => r.indoor ? 'Yes' : ''], ['Symptoms', 22, 'text', r => (r.symptoms || []).join(', ')], ['Symptom note', 22, 'text', r => r.symptomNote],
+    ...BEFORE.map(b => [b.q, 14, 'text', r => { const v = r.before && r.before[b.key]; return Array.isArray(v) ? v.join(', ') : v; }]),
+    ['Food note', 20, 'text', r => r.foodNote], ['Temp (F)', 9, 'int', r => r.cond && r.cond.temp], ['Humidity (%)', 11, 'int', r => r.cond && r.cond.humidity],
+    ['Dew point (F)', 12, 'int', r => r.cond && r.cond.dew], ['Wind (mph)', 10, 'num1', r => r.cond && r.cond.wind],
+    ['Elevation (ft)', 12, 'int', r => (r.cond && r.cond.elev) ?? ((routes.find(x => x.id === r.routeId) || {}).elev || null)], ['Incline (%)', 10, 'num1', r => r.cond && r.cond.incline],
+    ['Power (w)', 9, 'int', r => r.power], ['Cadence (spm)', 12, 'int', r => r.cadence],
+    ['Route', 16, 'text', r => rname(r.routeId)], ['Surface', 10, 'text', r => r.surface], ['Shoes', 16, 'text', r => sname(r.shoesId)],
+    ['Feeling sick', 11, 'text', r => r.sick ? 'Yes' : ''], ['Notes', 24, 'text', r => r.notes], ['Source', 9, 'text', r => r.source === 'import' ? 'Imported' : 'Logged'],
+  ];
+  const blob = Sheet.writeXlsx('Runs', cols.map(([header, width, style]) => ({ header, width, style })), runs.map(r => cols.map(c => { const v = c[3](r); return v === undefined ? null : v; })));
+  const name = 'PaceTrack runs ' + new Date().toISOString().slice(0, 10) + '.xlsx';
+  const file = new File([blob], name, { type: blob.type });
+  try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: name }); return; } }
+  catch (e) { if (e.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast('Exported ' + runs.length + ' runs');
 }
 
 /* ---------- Start ---------- */
