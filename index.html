@@ -129,7 +129,7 @@ details[open] > summary .pm::before { content: '−'; }
 .toggle input { width: 22px; height: 22px; accent-color: var(--ink); flex-shrink: 0; }
 .list { display: flex; flex-direction: column; gap: 6px; }
 .run-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 64px; padding: 10px 14px; text-decoration: none; color: var(--ink); }
-.run-row .main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.run-row .main { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .run-row .main b { font-weight: 500; }
 .run-row .main span { font-size: 13px; color: var(--muted); }
 .run-row .side { text-align: right; font-size: 13px; color: var(--muted); flex-shrink: 0; }
@@ -176,6 +176,38 @@ details[open] > summary .pm::before { content: '−'; }
 .why div { display: flex; gap: 8px; align-items: baseline; }
 .why div::before { content: ''; width: 6px; height: 6px; border-radius: 3px; background: var(--g2); flex-shrink: 0; transform: translateY(-2px); }
 .auto-tag { font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 5px; background: var(--blue-soft); color: var(--blue); margin-left: 6px; vertical-align: 2px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.grid4 > div { display: flex; flex-direction: column; } .grid4 b { font-size: 15px; font-weight: 500; }
+.drv { display: flex; flex-direction: column; gap: 5px; padding-top: 10px; border-top: 1px solid var(--soft); }
+.drv-top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; font-size: 14px; }
+.drv-top b { font-weight: 500; } .drv-cat { font-size: 11px; color: var(--muted); margin-left: 4px; }
+.drv-val { font-size: 14px; font-weight: 500; flex-shrink: 0; }
+.drv-sub { font-size: 12px; color: var(--muted); }
+.bar { height: 8px; border-radius: 4px; background: var(--soft); overflow: hidden; } .bar > div { height: 100%; border-radius: 4px; }
+.suspect { background: var(--ink); color: var(--paper); border-color: var(--ink); display: flex; flex-direction: column; gap: 6px; }
+.sus-k { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: color-mix(in srgb, var(--paper) 65%, transparent); }
+.sus-t { font: 600 24px/1.15 var(--serif); } .sus-d { font-size: 14px; line-height: 1.45; color: color-mix(in srgb, var(--paper) 88%, transparent); }
+.sus-try { margin-top: 4px; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--paper) 10%, transparent); font-size: 14px; display: flex; flex-direction: column; gap: 3px; }
+.went-right { font-size: 13px; background: var(--blue-soft); border-radius: 10px; padding: 8px 10px; }
+a.kv.rec { color: var(--ink); text-decoration: none; }
+.chart { width: 100%; height: auto; display: block; margin-top: 6px; }
+.gridline { stroke: var(--soft); stroke-width: 1; }
+.axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 2px; }
+.mini { padding: 10px 12px; }
+.cmp-row { display: grid; grid-template-columns: 1.1fr 1fr 1fr; gap: 8px; align-items: center; min-height: 38px; border-top: 1px solid var(--soft); font-size: 14px; }
+.cmp-row > span:first-child { color: var(--muted); }
+.cmp-row.hl { background: color-mix(in srgb, var(--g3) 12%, transparent); margin: 0 -14px; padding: 0 14px; border-radius: 6px; }
+.cmp-head { border: 0; font-weight: 600; min-height: 28px; } .cmp-head a { color: var(--blue); text-decoration: none; }
+.takeaway { font-size: 14px; line-height: 1.45; }
+.check { width: 28px; height: 28px; border-radius: 14px; border: 2px solid var(--edge); flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--on-accent); font-size: 15px; }
+.check.on { background: var(--accent); border-color: var(--accent); }
+.cmp-bar { position: fixed; left: 0; right: 0; bottom: calc(var(--tabbar) + env(safe-area-inset-bottom, 0px)); padding: 10px 14px; background: var(--card); border-top: 1px solid var(--line); display: flex; gap: 10px; align-items: center; justify-content: space-between; z-index: 6; }
+.sheet-wrap { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 20; display: flex; align-items: flex-end; justify-content: center; }
+.sheet { width: 100%; max-width: 560px; max-height: 88vh; overflow-y: auto; background: var(--card); border-radius: 20px 20px 0 0; padding: 10px 16px calc(env(safe-area-inset-bottom, 0px) + 16px); display: flex; flex-direction: column; gap: 12px; }
+.grab { width: 40px; height: 5px; border-radius: 3px; background: var(--line); align-self: center; }
+.sym-card { border: 1px solid var(--g3); background: var(--warn-bg); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 1.4; }
+.sym-k { font-size: 12px; font-weight: 600; color: var(--warn-text); }
 .map-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 10px; align-items: center; border-top: 1px solid var(--soft); padding-top: 10px; }
 .map-src { display: flex; flex-direction: column; min-width: 0; }
 .map-src b { font-weight: 500; font-size: 14px; overflow-wrap: anywhere; }
@@ -197,6 +229,9 @@ details[open] > summary .pm::before { content: '−'; }
 <nav class="tabbar" aria-label="Main">
   <a href="#/log" data-tab="log"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Log</a>
   <a href="#/runs" data-tab="runs"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Runs</a>
+
+  <a href="#/drivers" data-tab="drivers"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 20V11M10 20V5M16 20v-7M21 20H3"/></svg>Drivers</a>
+  <a href="#/trends" data-tab="trends"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/></svg>Trends</a>
 </nav>
 <div class="toast" id="toast" role="status"></div>
 
@@ -306,20 +341,23 @@ const GEAR = '<a href="#/settings" class="icon-btn" aria-label="Settings"><svg w
 
 async function route() {
   const h = location.hash.replace(/^#\/?/, '') || 'log';
-  const [view, id] = h.split('/');
+  const [view, id, id2] = h.split('/');
   const app = $('#app');
-  $$('.tabbar a').forEach(a => a.setAttribute('aria-current', a.dataset.tab === (view === 'run' ? 'runs' : view === 'edit' ? 'log' : view === 'import' ? 'settings' : view) ? 'page' : 'false'));
+  $$('.tabbar a').forEach(a => a.setAttribute('aria-current', a.dataset.tab === (view === 'run' || view === 'compare' ? 'runs' : view === 'edit' ? 'log' : view === 'import' ? 'settings' : view) ? 'page' : 'false'));
   window.scrollTo(0, 0);
   if (view === 'runs') return renderRuns(app);
   if (view === 'run' && id) return renderRun(app, id);
   if (view === 'settings') return renderSettings(app);
   if (view === 'import') return renderImport(app);
+  if (view === 'drivers') return renderDrivers(app);
+  if (view === 'trends') return renderTrends(app);
+  if (view === 'compare' && id && id2) return renderCompare(app, id, id2);
   if (view === 'edit' && id) return renderLog(app, await DB.run(id));
   return renderLog(app);
 }
 
 /* ---------- Log a run ---------- */
-let form = null;
+let form = null, pendingSheet = null;
 
 async function renderLog(app, existing) {
   const all = await DB.runs();
@@ -462,11 +500,13 @@ let wxTimer;
 function queueWeather(delay = 700) { clearTimeout(wxTimer); wxTimer = setTimeout(autoWeather, delay); }
 async function autoWeather() {
   if (!form || form.surface === 'Treadmill') return;
-  const when = new Date($('#f-started').value); if (isNaN(when) || when > new Date(Date.now() + 36e5)) return;
+  const sEl = $('#f-started'); if (!sEl) return;
+  const when = new Date(sEl.value); if (isNaN(when) || when > new Date(Date.now() + 36e5)) return;
   const st = $('#cond-status');
   try {
     st.textContent = 'Getting weather…';
     const w = await fetchWeather(when);
+    if (!$('#cond-status')) return;
     let used = false;
     for (const k of ['temp', 'humidity', 'dew', 'wind']) {
       if (form._condEdited.has(k) || w[k] == null) continue;
@@ -475,7 +515,7 @@ async function autoWeather() {
     if (used) form._condAuto = true;
     st.textContent = `Weather for ${getLoc().label} at ${when.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}. Tap a field to change it.`;
     updateLogSummaries();
-  } catch (e) { st.textContent = 'Couldn’t get weather right now. Enter it yourself, or fill it later from Settings.'; }
+  } catch (e) { if (st.isConnected) st.textContent = 'Couldn’t get weather right now. Enter it yourself, or fill it later from Settings.'; }
 }
 function readTimes() {
   form.miles = num($('#f-miles').value);
@@ -616,12 +656,13 @@ function bindLog(app, existing) {
       created: existing ? existing.created : new Date().toISOString(), updated: new Date().toISOString(), source: existing ? existing.source : 'manual'
     };
     await DB.put(run);
-    toast(existing ? 'Changes saved' : 'Run saved');
+    if (existing) toast('Changes saved'); else pendingSheet = run.id;
     location.hash = '#/run/' + run.id;
   });
 }
 
 /* ---------- Runs list ---------- */
+let runsSort = 'new', cmpMode = false, cmpSel = [];
 async function renderRuns(app) {
   const runs = (await DB.runs()).sort((a, b) => b.started.localeCompare(a.started));
   if (!runs.length) {
@@ -630,22 +671,40 @@ async function renderRuns(app) {
     return;
   }
   const sc = computeScores(runs);
-  const thisWeek = weekStart(new Date()).getTime();
-  const groups = new Map();
-  runs.forEach(r => { const k = weekStart(r.started).getTime(); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); });
-  let html = `<div class="head"><h1>Runs</h1>${GEAR}</div><div class="list">`;
-  for (const [k, list] of groups) {
-    const miles = list.reduce((s, r) => s + (r.miles || 0), 0);
-    const label = k === thisWeek ? 'This week' : k === thisWeek - 7 * 864e5 ? 'Last week' : 'Week of ' + new Date(k).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-    html += `<div class="week"><span>${label}</span><span class="mono" style="font-weight:500">${miles.toFixed(1)} mi</span></div>`;
-    html += list.map(r => `
-      <a class="card run-row" href="#/run/${r.id}">
-        <span class="main"><b>${fmtDay(r.started)}${r.indoor ? ' · Indoor' : ''}${settings.trackTypes && r.type !== 'Easy' ? ' · ' + esc(r.type) : ''}</b>
+  const row = r => {
+    const S = sc[r.id] || {}, on = cmpSel.includes(r.id);
+    const inner = `<span class="main"><b>${fmtDay(r.started)}${r.indoor ? ' · Indoor' : ''}${settings.trackTypes && r.type !== 'Easy' ? ' · ' + esc(r.type) : ''}</b>
         <span>${fmtPace(r)} /mi${r.hr ? ' · ' + r.hr + ' bpm' : ''}${r.symptoms && r.symptoms.length ? ' · <span style="color:var(--orange)">' + esc(r.symptoms[0]) + (r.symptoms.length > 1 ? ' +' + (r.symptoms.length - 1) : '') + '</span>' : ''}</span></span>
-        <span class="side"><span class="mono">${r.miles.toFixed(2)} <small style="font-size:12px;color:var(--muted)">mi</small></span>${sc[r.id] && sc[r.id].label ? `<span class="${labelClass(sc[r.id].label)}" style="margin-top:4px">${sc[r.id].label} ${sc[r.id].score}</span>` : ''}</span>
-      </a>`).join('');
+        <span class="side"><span class="mono">${r.miles.toFixed(2)} <small style="font-size:12px;color:var(--muted)">mi</small></span>${S.label ? `<span class="${labelClass(S.label)}" style="margin-top:4px">${S.label} ${S.score}</span>` : ''}</span>`;
+    return cmpMode
+      ? `<button class="card run-row" data-pick="${r.id}" aria-pressed="${on}" style="width:100%;text-align:left;font:inherit;color:inherit"><span class="check${on ? ' on' : ''}">${on ? '✓' : ''}</span>${inner}</button>`
+      : `<a class="card run-row" href="#/run/${r.id}">${inner}</a>`;
+  };
+  let html = `<div class="head"><h1>Runs</h1><div class="row"><button class="small-btn${cmpMode ? '' : ' dark'}" id="cmp-toggle" style="min-height:40px">${cmpMode ? 'Cancel' : 'Compare'}</button>${GEAR}</div></div>
+    <div class="seg" role="group" aria-label="Sort" style="margin-bottom:10px"><button type="button" data-sort="new" aria-pressed="${runsSort === 'new'}">Newest</button><button type="button" data-sort="best" aria-pressed="${runsSort === 'best'}">Best score</button></div>
+    ${cmpMode ? '<div class="hint" style="margin:-2px 2px 8px">Pick two runs to compare.</div>' : ''}<div class="list">`;
+  if (runsSort === 'best') {
+    html += runs.filter(r => sc[r.id] && sc[r.id].score != null).sort((a, b) => sc[b.id].score - sc[a.id].score).map(row).join('');
+  } else {
+    const thisWeek = weekStart(new Date()).getTime(), groups = new Map();
+    runs.forEach(r => { const k = weekStart(r.started).getTime(); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); });
+    for (const [k, list] of groups) {
+      const miles = list.reduce((s, r) => s + (r.miles || 0), 0);
+      const label = k === thisWeek ? 'This week' : k === thisWeek - 7 * 864e5 ? 'Last week' : 'Week of ' + new Date(k).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      html += `<div class="week"><span>${label}</span><span class="mono" style="font-weight:500">${miles.toFixed(1)} mi</span></div>` + list.map(row).join('');
+    }
   }
-  app.innerHTML = html + '</div>';
+  html += '</div>';
+  if (cmpMode) html += `<div class="cmp-bar"><span class="sub">${cmpSel.length} of 2 picked</span>${cmpSel.length === 2 ? `<a class="small-btn dark" style="display:inline-flex;align-items:center;text-decoration:none;min-height:44px" href="#/compare/${cmpSel[0]}/${cmpSel[1]}" id="cmp-go">Compare</a>` : '<button class="small-btn" disabled style="min-height:44px">Compare</button>'}</div><div style="height:64px"></div>`;
+  app.innerHTML = html;
+  $('#cmp-toggle').addEventListener('click', () => { cmpMode = !cmpMode; cmpSel = []; renderRuns(app); });
+  $$('[data-sort]').forEach(b => b.addEventListener('click', () => { runsSort = b.dataset.sort; renderRuns(app); }));
+  $$('[data-pick]').forEach(b => b.addEventListener('click', () => {
+    const id = b.dataset.pick, i = cmpSel.indexOf(id);
+    if (i > -1) cmpSel.splice(i, 1); else { if (cmpSel.length === 2) cmpSel.shift(); cmpSel.push(id); }
+    renderRuns(app);
+  }));
+  const go = $('#cmp-go'); if (go) go.addEventListener('click', () => { cmpMode = false; cmpSel = []; });
 }
 
 /* ---------- Run detail ---------- */
@@ -668,10 +727,17 @@ async function renderRun(app, id) {
   if (r.felt != null && S.usualFelt != null) why.push(`Effort ${r.felt}/10 vs your usual ${S.usualFelt}/10`);
   if (S.vsPrev != null) why.push(`${S.vsPrev >= 0 ? '+' : ''}${S.vsPrev} vs your previous ${r.indoor ? 'indoor ' : ''}run`);
   if (S.load != null) why.push(`Load ratio ${S.load.toFixed(2)}: ${loadWord(S.load)}`);
+  const allRuns = await DB.runs(), allSc = computeScores(allRuns), rec = records(allRuns, allSc);
+  const links = [];
+  if (S.prevId) links.push(`<a class="kv rec" href="#/compare/${S.prevId}/${r.id}"><span>Compare with previous run</span><span style="color:var(--blue)">›</span></a>`);
+  if (rec.best && rec.best.id !== r.id) links.push(`<a class="kv rec" href="#/compare/${rec.best.id}/${r.id}"><span>Compare with your best run</span><span style="color:var(--blue)">${allSc[rec.best.id].score} ›</span></a>`);
+  const badges = [rec.best && rec.best.id === r.id ? 'Best run' : null, rec.bpm && rec.bpm.id === r.id ? 'Best beats per mile' : null, rec.pace && rec.pace.id === r.id ? 'Fastest pace' : null, rec.long && rec.long.id === r.id ? 'Longest run' : null].filter(Boolean);
   const scoreCard = S.score != null ? `<div class="card pad score-card">
       <div class="score-top"><div><div class="sub">Session score</div><div class="score-num">${S.score}<small>/100</small></div></div><span class="${labelClass(S.label)}" style="font-size:15px;min-height:32px;padding:0 12px">${S.label}</span></div>
       ${why.length ? `<div class="why">${why.map(w => `<div><span>${w}</span></div>`).join('')}</div>` : ''}
       ${S.feelOnly ? '<div class="hint">Scored on effort only, since this run has no heart rate.</div>' : ''}
+      ${badges.length ? `<div class="chips">${badges.map(b => `<span class="lab lab-good">★ ${b}</span>`).join('')}</div>` : ''}
+      ${links.length ? `<div>${links.join('')}</div>` : ''}
     </div>` : `<div class="card pad"><div class="sub">Session score</div><div style="margin-top:4px">${bpm ? 'Scores start once you have 5 runs with heart rate.' : 'Add average heart rate to score this run.'}</div>${S.load != null ? `<div class="hint" style="margin-top:6px">Load ratio ${S.load.toFixed(2)}: ${loadWord(S.load)}</div>` : ''}</div>`;
   app.innerHTML = `
     <a class="back" href="#/runs">← Runs</a>
@@ -705,6 +771,7 @@ async function renderRun(app, id) {
     if (!confirm('Delete this run? This can’t be undone.')) return;
     await DB.del(r.id); toast('Run deleted'); location.hash = '#/runs';
   });
+  if (pendingSheet === r.id) { pendingSheet = null; savedSheet(r); }
 }
 
 /* ---------- Settings ---------- */
@@ -908,6 +975,346 @@ function computeScores(allRuns) {
 }
 const loadWord = x => x == null ? '' : x < 0.8 ? 'easing off' : x <= 1.3 ? 'steady' : x <= 1.5 ? 'building fast' : 'big jump';
 const labelClass = l => 'lab lab-' + (l || 'none').toLowerCase();
+
+/* ---------- Analysis: factors, drivers, symptom patterns ---------- */
+const SLEEP_H = { '<5 h': 4.5, '5–6': 5.5, '6–7': 6.5, '7–8': 7.5, '8+': 8.5 };
+const B = (r, k) => r.before && r.before[k];
+const FACTORS = [
+  { key: 'sleep', name: 'Sleep', cat: 'Sleep', badText: 'Under 6 h sleep', goodText: '7+ h sleep', get: r => { const v = B(r, 'sleep'); return !v ? null : ['<5 h', '5–6'].includes(v) ? 'bad' : ['7–8', '8+'].includes(v) ? 'good' : 'mid'; }, tip: 'Aim for 7+ hours of sleep before runs.', goal: 'Sleep 7+ h before runs' },
+  { key: 'meal', name: 'Meal timing', cat: 'Food', badText: 'Ate under 1 h before', goodText: 'Ate 2+ h before', get: r => { const v = B(r, 'meal'); return !v ? null : v === '<1 h' ? 'bad' : ['2–4 h', '4 h+'].includes(v) ? 'good' : 'mid'; }, tip: 'Eat 2+ hours before, or keep it to a light snack if you run sooner.', goal: 'Eat 2+ h before runs' },
+  { key: 'mealType', name: 'Meal type', cat: 'Food', badText: 'Heavy or fatty meal', goodText: 'Light meal', get: r => { const v = B(r, 'mealType'); if (!v || !v.length) return null; return v.includes('Heavy') || v.includes('Fatty') ? 'bad' : v.includes('Light') ? 'good' : 'mid'; }, tip: 'Keep the meal before a run light and low in fat.', goal: 'Light meal before runs' },
+  { key: 'caffeine', name: 'Caffeine', cat: 'Food', badText: '2+ cups of caffeine', goodText: 'No caffeine', get: r => { const v = B(r, 'caffeine'); return !v ? null : v === '2+' ? 'bad' : v === 'None' ? 'good' : 'mid'; }, tip: 'Try keeping caffeine to one cup before runs.', goal: 'Max 1 cup of caffeine before runs' },
+  { key: 'water', name: 'Water', cat: 'Hydration', badText: 'Low water the day before', goodText: 'Normal or high water', get: r => { const v = B(r, 'water'); return !v ? null : v === 'Low' ? 'bad' : 'good'; }, tip: 'Drink steadily the day before a run.', goal: 'Normal water the day before' },
+  { key: 'alcohol', name: 'Alcohol', cat: 'Hydration', badText: 'Alcohol the night before', goodText: 'No alcohol', get: r => { const v = B(r, 'alcohol'); return !v ? null : v === 'None' ? 'good' : 'bad'; }, tip: 'Skip alcohol the night before a run.', goal: 'No alcohol the night before' },
+  { key: 'soreness', name: 'Soreness', cat: 'Fitness', badText: 'Moderate or high soreness', goodText: 'Little or no soreness', get: r => { const v = B(r, 'soreness'); return !v ? null : ['Moderate', 'High'].includes(v) ? 'bad' : 'good'; }, tip: 'When you’re sore, keep it short and very easy, or rest.', goal: null },
+  { key: 'stress', name: 'Stress', cat: 'Other', badText: 'High stress', goodText: 'Low stress', get: r => { const v = B(r, 'stress'); return !v ? null : v === 'High' ? 'bad' : v === 'Low' ? 'good' : 'mid'; }, tip: 'On high-stress days, go by feel and keep the pace easy.', goal: null },
+  { key: 'load', name: 'Load ratio', cat: 'Fitness', badText: 'Mileage ramped up fast (over 1.3)', goodText: 'Steady mileage (0.8–1.3)', get: (r, c) => c.load == null ? null : c.load > 1.3 ? 'bad' : c.load >= 0.8 ? 'good' : 'mid', tip: 'Build weekly miles gradually, about 10–30% over your usual.', goal: 'Keep load ratio under 1.3' },
+  { key: 'backToBack', name: 'Back-to-back days', cat: 'Fitness', badText: 'Ran the day before', goodText: '2–4 days since last run', get: (r, c) => c.gap == null ? null : c.gap <= 1 ? 'bad' : c.gap <= 4 ? 'good' : 'mid', tip: 'Leave a rest day between runs.', goal: null },
+  { key: 'longBreak', name: 'Long break', cat: 'Fitness', badText: '5+ days since last run', goodText: '2–4 days since last run', get: (r, c) => c.gap == null ? null : c.gap >= 5 ? 'bad' : c.gap >= 2 ? 'good' : 'mid', tip: 'After a long break, start easier than usual.', goal: null },
+  { key: 'temp', name: 'Temperature', cat: 'Weather', badText: '80°F or hotter', goodText: 'Under 70°F', get: r => r.indoor || !r.cond || r.cond.temp == null ? null : r.cond.temp >= 80 ? 'bad' : r.cond.temp < 70 ? 'good' : 'mid', tip: 'On hot days, run earlier and slow down a little.', goal: null },
+  { key: 'humidity', name: 'Humidity', cat: 'Weather', badText: '70%+ humidity', goodText: 'Under 50% humidity', get: r => r.indoor || !r.cond || r.cond.humidity == null ? null : r.cond.humidity >= 70 ? 'bad' : r.cond.humidity < 50 ? 'good' : 'mid', tip: 'On humid days, ease the pace and drink more.', goal: null },
+  { key: 'elev', name: 'Hills', cat: 'Route', badText: '200+ ft of climbing', goodText: 'Under 150 ft', get: r => { if (r.indoor) return null; const e = (r.cond && r.cond.elev) ?? ((routes.find(x => x.id === r.routeId) || {}).elev); return e == null ? null : e >= 200 ? 'bad' : e < 150 ? 'good' : 'mid'; }, tip: 'Hilly routes cost more. Compare them with other hilly runs.', goal: null },
+  { key: 'sick', name: 'Feeling sick', cat: 'Other', badText: 'Feeling sick or run down', goodText: 'Feeling fine', get: r => r.source === 'import' ? null : r.sick ? 'bad' : 'good', tip: 'When you feel run down, rest or keep it very easy.', goal: null },
+];
+
+function runContext(allRuns, scores) {
+  const sorted = [...allRuns].sort((a, b) => a.started.localeCompare(b.started)), ctx = {};
+  sorted.forEach((r, i) => { const prev = sorted[i - 1]; ctx[r.id] = { load: scores[r.id] && scores[r.id].load, gap: prev ? dayNum(r.started) - dayNum(prev.started) : null, score: scores[r.id] && scores[r.id].score }; });
+  return ctx;
+}
+const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+
+function scoreDrivers(runs, scores, ctx) {
+  const out = [], missing = [];
+  for (const f of FACTORS) {
+    const bad = [], good = [];
+    runs.forEach(r => { const s = ctx[r.id].score; if (s == null) return; const v = f.get(r, ctx[r.id]); if (v === 'bad') bad.push(s); else if (v === 'good') good.push(s); });
+    if (bad.length < 3 || good.length < 3) { missing.push({ f, nBad: bad.length, nGood: good.length }); continue; }
+    const diff = mean(bad) - mean(good);
+    out.push({ f, diff: Math.round(diff), nBad: bad.length, nGood: good.length, early: Math.min(bad.length, good.length) < 5 });
+  }
+  out.sort((a, b) => a.diff - b.diff);
+  return { list: out, missing };
+}
+
+function symptomPatterns(runs, ctx, symptom) {
+  const withS = runs.filter(r => (r.symptoms || []).includes(symptom)), without = runs.filter(r => !(r.symptoms || []).includes(symptom) && r.source !== 'import');
+  const out = [];
+  for (const f of FACTORS) {
+    const a = withS.map(r => f.get(r, ctx[r.id])).filter(v => v != null), b = without.map(r => f.get(r, ctx[r.id])).filter(v => v != null);
+    if (a.length < 2) continue;
+    const ra = a.filter(v => v === 'bad').length / a.length, rb = b.length ? b.filter(v => v === 'bad').length / b.length : 0;
+    if (ra <= 0) continue;
+    out.push({ f, hits: a.filter(v => v === 'bad').length, n: a.length, rate: ra, other: b.length >= 3 ? rb : null, lift: ra - rb });
+  }
+  out.sort((x, y) => y.lift - x.lift);
+  return { list: out, count: withS.length };
+}
+
+const SYMPTOM_TIPS = {
+  'Side stitch': ['Slow down, breathe out as your opposite foot lands, and press into the spot.', 'Eat 2+ hours before and avoid big drinks right before you run.'],
+  'Cramp': ['Slow to a walk and gently stretch the muscle. For a calf, pull your toes toward your shin.', 'Build mileage gradually and use electrolytes on hot or long runs.'],
+  'Short of breath': ['Ease the pace until you can speak in full sentences.', 'Warm up for a few minutes before picking up the pace.'],
+  'Low energy': ['Walk a bit and have a snack and water afterward.', 'Check sleep and eat something light 1–2 hours before.'],
+  'Dizzy / lightheaded': ['Stop, sit down, and have water and something to eat.', 'Don’t run fasted, and drink well the day before.'],
+  'Overheated': ['Stop in the shade and cool down with water.', 'Run earlier on hot days and slow the pace.'],
+  'Nausea': ['Slow down and take small sips of water.', 'Eat earlier and keep the meal light.'],
+  'Needed bathroom': ['Plan a route that passes a restroom.', 'Eat earlier, and go easy on fiber and caffeine before runs.'],
+  'Heartburn': ['Slow down and stay upright afterward.', 'Avoid fatty or acidic food in the few hours before a run.'],
+  'Heavy legs': ['Keep the next run short and very easy, or rest.', 'Check your sleep and whether your mileage ramped up.'],
+  'Tight calves': ['Walk it out and gently stretch afterward.', 'Warm up with easy running first, and increase mileage gradually.'],
+  'Tight hamstrings': ['Ease off and gently stretch afterward.', 'Warm up first and avoid sudden jumps in pace.'],
+  'Shin': ['Don’t push through pain. Rest a day or two.', 'Build mileage gradually and check your shoes aren’t worn out.'],
+  'Knee': ['Stop if it’s sharp. Rest a day or two.', 'Check shoes and mileage increases. Hills can aggravate it.'],
+  'Hip / IT band': ['Ease off and rest a day if it lingers.', 'Build gradually and vary routes if you always run the same camber.'],
+  'Foot / heel': ['Rest a day or two and avoid hard surfaces.', 'Check shoe wear and fit.'],
+  'Achilles': ['Stop and rest. Don’t run through Achilles pain.', 'Avoid sudden hill or speed increases.'],
+  'Lower back': ['Ease off and walk it out.', 'Keep an upright posture and don’t overstride.'],
+  'Blister': ['Keep it clean and covered.', 'Check sock material and shoe fit.'],
+  'Chafing': ['Clean and dry the area.', 'Use anti-chafe balm and seamless clothing.'],
+  'Numb toes': ['Loosen your laces a little.', 'Check shoe fit, especially toe room.'],
+  'Headache': ['Drink water and rest.', 'Stay hydrated and don’t run fasted.'],
+};
+const PAIN = ['Shin', 'Knee', 'Hip / IT band', 'Foot / heel', 'Achilles', 'Lower back', 'Dizzy / lightheaded', 'Short of breath', 'Headache'];
+const DOCTOR_NOTE = 'See a doctor if pain is sharp, stays in one spot, causes a limp or swelling, or doesn’t ease after 3–4 days. For chest pain or fainting, get help right away.';
+
+async function analysis() {
+  const runs = await DB.runs();
+  const scores = computeScores(runs), ctx = runContext(runs, scores);
+  return { runs, scores, ctx, drivers: scoreDrivers(runs, scores, ctx) };
+}
+
+function records(runs, scores) {
+  const withB = runs.filter(r => beatsPerMile(r) && !r.indoor);
+  const pick = (arr, fn) => arr.length ? arr.reduce((a, b) => fn(b) < fn(a) ? b : a) : null;
+  const scored = runs.filter(r => scores[r.id] && scores[r.id].score != null);
+  return {
+    best: scored.length ? scored.reduce((a, b) => scores[b.id].score > scores[a.id].score || (scores[b.id].score === scores[a.id].score && b.started > a.started) ? b : a) : null,
+    bpm: pick(withB, beatsPerMile), pace: pick(runs.filter(r => !r.indoor), paceSec), long: runs.length ? runs.reduce((a, b) => b.miles > a.miles ? b : a) : null,
+  };
+}
+
+/* ---------- Drivers ---------- */
+let driversView = 'score', driversSym = null;
+async function renderDrivers(app) {
+  const A = await analysis(), { runs, scores, ctx, drivers } = A;
+  const scored = runs.filter(r => scores[r.id] && scores[r.id].score != null);
+  if (scored.length < 5) {
+    app.innerHTML = `<div class="head"><h1>Drivers</h1>${GEAR}</div><div class="card empty"><p>Drivers show up once you have 5 scored runs (runs with heart rate). You have ${scored.length}.</p></div>`; return;
+  }
+  const recent = [...scored].sort((a, b) => b.started.localeCompare(a.started));
+  const avg = Math.round(mean(recent.slice(0, 10).map(r => scores[r.id].score)));
+  const latest = recent[0], usual = scores[latest.id].baseline;
+  const loadNow = scores[latest.id].load;
+  const top = drivers.list.find(d => d.diff <= -5);
+  const symptomNames = [...new Set(runs.flatMap(r => r.symptoms || []))];
+  if (!driversSym || !symptomNames.includes(driversSym)) driversSym = symptomNames[0] || null;
+  const max = Math.max(15, ...drivers.list.map(d => Math.abs(d.diff)));
+  const rec = records(runs, scores), best = rec.best;
+
+  let impact;
+  if (driversView === 'score') {
+    impact = drivers.list.length ? drivers.list.map(d => {
+      const hurts = d.diff < 0, w = Math.round(Math.abs(d.diff) / max * 100);
+      return `<div class="drv">
+        <div class="drv-top"><span><b>${esc(d.f.badText)}</b> <span class="drv-cat">${d.f.cat}</span></span><span class="mono drv-val" style="color:${hurts ? 'var(--orange)' : 'var(--blue)'}">${d.diff > 0 ? '+' : ''}${d.diff}</span></div>
+        <div class="bar"><div style="width:${Math.max(w, 3)}%;background:${hurts ? 'var(--g3)' : 'var(--g1)'}"></div></div>
+        <div class="drv-sub">${Math.abs(d.diff)} points ${hurts ? 'lower' : 'higher'} than ${esc(d.f.goodText.toLowerCase())} · ${d.nBad} vs ${d.nGood} runs${d.early ? ' · early signal' : ''}</div>
+      </div>`;
+    }).join('') : '<div class="sub">No factor has enough runs on both sides yet.</div>';
+    const miss = drivers.missing.filter(m => m.nBad + m.nGood < 6).map(m => m.f.name.toLowerCase());
+    if (miss.length) impact += `<div class="hint" style="border-top:1px solid var(--soft);padding-top:10px">Not enough data yet: ${miss.join(', ')}. Log “Before the run” on new runs to see these.</div>`;
+  } else {
+    if (!driversSym) impact = '<div class="sub">No symptoms logged yet. When you log one, this shows what tends to come before it.</div>';
+    else {
+      const P = symptomPatterns(runs, ctx, driversSym);
+      impact = `<div class="chips">${symptomNames.map(s => `<button class="chip" data-sym-pick="${esc(s)}" aria-pressed="${s === driversSym}">${esc(s)}</button>`).join('')}</div>
+        <div class="sub">${P.count} run${P.count === 1 ? '' : 's'} with ${esc(driversSym.toLowerCase())}. What was off beforehand:</div>` +
+        (P.count < 2 ? '<div class="sub">Log this symptom a few more times to see a pattern.</div>' :
+        P.list.length ? P.list.slice(0, 6).map(p => `<div class="drv"><div class="drv-top"><span><b>${esc(p.f.badText)}</b> <span class="drv-cat">${p.f.cat}</span></span><span class="mono drv-val" style="color:var(--orange)">${p.hits}/${p.n}</span></div>
+          <div class="bar"><div style="width:${Math.round(p.rate * 100)}%;background:var(--orange)"></div></div>
+          <div class="drv-sub">${p.hits} of ${p.n} ${esc(driversSym.toLowerCase())} runs${p.other != null ? ` vs ${Math.round(p.other * 100)}% of other runs` : ''}</div></div>`).join('')
+        : '<div class="sub">Nothing stands out yet.</div>');
+    }
+  }
+
+  const bestWhy = best ? [...new Set(FACTORS.filter(f => f.get(best, ctx[best.id]) === 'good').map(f => f.goodText.toLowerCase()))].slice(0, 4) : [];
+  const S = best ? scores[best.id] : null;
+  app.innerHTML = `
+    <div class="head"><h1>Drivers</h1>${GEAR}</div>
+    <div class="stack">
+      <div class="grid2">
+        <div class="card stat"><span>Runs</span><b>${runs.length}</b></div>
+        <div class="card stat"><span>Avg score, last 10</span><b>${avg}</b></div>
+        <div class="card stat"><span>Usual beats /mi</span><b>${usual || '—'}</b></div>
+        <div class="card stat"><span>Load now</span><b>${loadNow != null ? loadNow.toFixed(2) : '—'}</b></div>
+      </div>
+      <div class="card pad suspect">
+        <div class="sus-k">Biggest suspect</div>
+        ${top ? `<div class="sus-t">${esc(top.f.name)}</div><div class="sus-d">Runs with ${esc(top.f.badText.toLowerCase())} score ${Math.abs(top.diff)} points lower, based on ${top.nBad + top.nGood} runs.</div>
+          <div class="sus-try"><span class="sus-k">What to try</span><div>${esc(top.f.tip)}</div></div>`
+        : `<div class="sus-d">No clear pattern yet. Keep logging “Before the run” and this will fill in.</div>`}
+      </div>
+      <div class="card pad stack">
+        <div class="seg" role="group" aria-label="View"><button type="button" data-dv="score" aria-pressed="${driversView === 'score'}">Score</button><button type="button" data-dv="symptoms" aria-pressed="${driversView === 'symptoms'}">Symptoms</button></div>
+        ${impact}
+      </div>
+      ${best ? `<div class="card pad stack">
+        <div class="row" style="justify-content:space-between"><h2>Best run</h2><a href="#/run/${best.id}" class="back" style="min-height:32px">Open ›</a></div>
+        <div class="row" style="justify-content:space-between"><span class="sub">${fmtDay(best.started)}</span><span class="${labelClass(S.label)}">${S.label} ${S.score}</span></div>
+        <div class="grid4">
+          <div><span class="sub">Miles</span><b class="mono">${best.miles.toFixed(2)}</b></div><div><span class="sub">Pace</span><b class="mono">${fmtPace(best)}</b></div>
+          <div><span class="sub">HR</span><b class="mono">${best.hr || '—'}</b></div><div><span class="sub">Beats/mi</span><b class="mono">${beatsPerMile(best) || '—'}</b></div>
+        </div>
+        ${bestWhy.length ? `<div class="went-right"><b>What went right:</b> ${esc(bestWhy.join(' · '))}</div>` : ''}
+        <div class="group-name" style="margin-top:4px">Records</div>
+        ${rec.bpm ? `<a class="kv rec" href="#/run/${rec.bpm.id}"><span>Best beats per mile</span><span class="mono">${beatsPerMile(rec.bpm)} · ${new Date(rec.bpm.started).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span></a>` : ''}
+        ${rec.pace ? `<a class="kv rec" href="#/run/${rec.pace.id}"><span>Fastest pace</span><span class="mono">${fmtPace(rec.pace)} · ${new Date(rec.pace.started).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span></a>` : ''}
+        ${rec.long ? `<a class="kv rec" href="#/run/${rec.long.id}"><span>Longest run</span><span class="mono">${rec.long.miles.toFixed(2)} mi · ${new Date(rec.long.started).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span></a>` : ''}
+      </div>` : ''}
+    </div>`;
+  $$('[data-dv]').forEach(b => b.addEventListener('click', () => { driversView = b.dataset.dv; renderDrivers(app); }));
+  $$('[data-sym-pick]').forEach(b => b.addEventListener('click', () => { driversSym = b.dataset.symPick; renderDrivers(app); }));
+}
+
+/* ---------- Trends ---------- */
+let trendRange = 90;
+function svgLine(points, w, h, yMin, yMax, color, opts = {}) {
+  if (!points.length) return '';
+  const sx = x => 8 + x * (w - 16), sy = y => h - 6 - (y - yMin) / (yMax - yMin || 1) * (h - 12);
+  return `<polyline fill="none" stroke="${color}" stroke-width="${opts.width || 2.5}" stroke-linecap="round" stroke-linejoin="round" ${opts.dash ? 'stroke-dasharray="5 4"' : ''} points="${points.map(p => sx(p[0]).toFixed(1) + ',' + sy(p[1]).toFixed(1)).join(' ')}"/>`;
+}
+function rolling(vals, n) { return vals.map((_, i) => { const w = vals.slice(Math.max(0, i - n + 1), i + 1).filter(v => v != null); return w.length ? mean(w) : null; }); }
+
+async function renderTrends(app) {
+  const runs = (await DB.runs()).sort((a, b) => a.started.localeCompare(b.started));
+  const scores = computeScores(runs);
+  const from = trendRange ? Date.now() - trendRange * 864e5 : 0;
+  const R = runs.filter(r => new Date(r.started).getTime() >= from);
+  const head = `<div class="head"><h1>Trends</h1>${GEAR}</div>
+    <div class="seg" role="group" aria-label="Range" style="margin-bottom:10px">${[[30, '30 days'], [90, '90 days'], [0, 'All']].map(([v, l]) => `<button type="button" data-range="${v}" aria-pressed="${trendRange === v}">${l}</button>`).join('')}</div>`;
+  if (R.length < 2) { app.innerHTML = head + '<div class="card empty"><p>Not enough runs in this range yet.</p></div>'; bindRange(app); return; }
+  const W = 340, t0 = new Date(R[0].started).getTime(), t1 = new Date(R[R.length - 1].started).getTime(), span = Math.max(1, t1 - t0);
+  const tx = r => (new Date(r.started).getTime() - t0) / span;
+  const dateLabels = `<div class="axis"><span>${new Date(t0).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span><span>${new Date(t1).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span></div>`;
+  const sx = x => 8 + x * (W - 16);
+
+  // score chart
+  const sc = R.filter(r => scores[r.id].score != null);
+  const scRoll = rolling(sc.map(r => scores[r.id].score), 5);
+  const H1 = 150, syS = y => H1 - 6 - y / 100 * (H1 - 12);
+  const LCOL = { Great: 'var(--g1)', Good: 'var(--g1)', Typical: 'var(--faint)', Rough: 'var(--g3)', Bad: 'var(--g3)' };
+  const scoreSvg = `<svg viewBox="0 0 ${W} ${H1}" class="chart" role="img" aria-label="Session score over time">
+    ${[25, 50, 75].map(y => `<line x1="0" x2="${W}" y1="${syS(y)}" y2="${syS(y)}" class="gridline"/>`).join('')}
+    ${svgLine(sc.map((r, i) => [tx(r), scRoll[i]]), W, H1, 0, 100, 'var(--ink)', { width: 2.5 })}
+    ${sc.map(r => { const s = scores[r.id]; return `<circle cx="${sx(tx(r)).toFixed(1)}" cy="${syS(s.score).toFixed(1)}" r="4.5" fill="${r.indoor ? 'var(--card)' : LCOL[s.label]}" stroke="${LCOL[s.label]}" stroke-width="2"/>`; }).join('')}
+  </svg>`;
+
+  // efficiency chart
+  const ef = R.filter(r => !r.indoor && scores[r.id].adj);
+  let effSvg = '';
+  if (ef.length >= 3) {
+    const vals = ef.map(r => scores[r.id].adj), roll = rolling(vals, 5), lo = Math.min(...vals) * 0.98, hi = Math.max(...vals) * 1.02;
+    const H2 = 130, sy = y => H2 - 6 - (y - lo) / (hi - lo) * (H2 - 12);
+    effSvg = `<svg viewBox="0 0 ${W} ${H2}" class="chart" role="img" aria-label="Heat-adjusted beats per mile over time">
+      ${ef.map(r => `<circle cx="${sx(tx(r)).toFixed(1)}" cy="${sy(scores[r.id].adj).toFixed(1)}" r="3.5" fill="var(--faint)" opacity="0.7"/>`).join('')}
+      ${svgLine(ef.map((r, i) => [tx(r), roll[i]]), W, H2, lo, hi, 'var(--g1)', { width: 2.5 })}
+    </svg><div class="axis"><span>${Math.round(hi)} beats/mi</span><span>${Math.round(lo)}</span></div>`;
+    const firstAvg = mean(vals.slice(0, Math.min(5, vals.length))), lastAvg = mean(vals.slice(-5));
+    const ch = (lastAvg - firstAvg) / firstAvg * 100;
+    effSvg += `<div class="sub" style="margin-top:6px">${Math.abs(ch) < 1 ? 'About the same as' : ch < 0 ? `<b style="color:var(--blue)">${Math.abs(ch).toFixed(1)}% fewer</b> beats per mile than` : `<b style="color:var(--orange)">${ch.toFixed(1)}% more</b> beats per mile than`} at the start of this range. Lower means fitter.</div>`;
+  }
+
+  // weekly miles + load
+  const weeks = new Map();
+  R.forEach(r => { const k = weekStart(r.started).getTime(); weeks.set(k, (weeks.get(k) || 0) + r.miles); });
+  const wk = [...weeks.entries()].sort((a, b) => a[0] - b[0]);
+  const H3 = 120, maxMi = Math.max(...wk.map(w => w[1])) * 1.15, bw = Math.min(26, (W - 16) / wk.length - 4);
+  const wkSvg = `<svg viewBox="0 0 ${W} ${H3}" class="chart" role="img" aria-label="Weekly miles">
+    ${wk.map((w, i) => { const x = 8 + (i + 0.5) * (W - 16) / wk.length - bw / 2, h = w[1] / maxMi * (H3 - 20); return `<rect x="${x.toFixed(1)}" y="${(H3 - 14 - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="var(--g2)" opacity="0.8"/>`; }).join('')}
+  </svg><div class="axis"><span>${wk.length} weeks</span><span>peak ${Math.max(...wk.map(w => w[1])).toFixed(1)} mi</span></div>`;
+
+  // small multiples
+  const small = (label, pts, lo, hi, color) => pts.length >= 2 ? `<div class="card pad mini"><div class="sub">${label}</div><svg viewBox="0 0 150 56" class="chart" aria-hidden="true">${svgLine(pts, 150, 56, lo, hi, color, { width: 2 })}${pts.map(p => `<circle cx="${(8 + p[0] * 134).toFixed(1)}" cy="${(50 - (p[1] - lo) / (hi - lo || 1) * 44).toFixed(1)}" r="2.2" fill="${color}"/>`).join('')}</svg></div>` : `<div class="card pad mini"><div class="sub">${label}</div><div class="hint" style="margin-top:8px">Not logged yet</div></div>`;
+  const sleepPts = R.filter(r => SLEEP_H[B(r, 'sleep')]).map(r => [tx(r), SLEEP_H[B(r, 'sleep')]]);
+  const feltPts = R.filter(r => r.felt != null).map(r => [tx(r), r.felt]);
+  const tempPts = R.filter(r => !r.indoor && r.cond && r.cond.temp != null).map(r => [tx(r), r.cond.temp]);
+  const humPts = R.filter(r => !r.indoor && r.cond && r.cond.humidity != null).map(r => [tx(r), r.cond.humidity]);
+  const tr = tempPts.map(p => p[1]);
+
+  // symptoms strip
+  const symRuns = R.filter(r => r.symptoms && r.symptoms.length);
+  const symSvg = `<svg viewBox="0 0 ${W} 22" class="chart" aria-label="Runs with symptoms"><line x1="0" x2="${W}" y1="11" y2="11" class="gridline"/>${symRuns.map(r => `<circle cx="${sx(tx(r)).toFixed(1)}" cy="11" r="5" fill="var(--orange)"><title>${esc(fmtDay(r.started))}: ${esc(r.symptoms.join(', '))}</title></circle>`).join('')}</svg>`;
+
+  app.innerHTML = head + `<div class="stack">
+    <div class="card pad"><div class="row" style="justify-content:space-between"><h2>Session score</h2><span class="hint">line = 5-run average${R.some(r => r.indoor) ? ' · hollow = indoor' : ''}</span></div>${scoreSvg}${dateLabels}</div>
+    ${effSvg ? `<div class="card pad"><div class="row" style="justify-content:space-between"><h2>Efficiency</h2><span class="hint">outdoor · heat-adjusted</span></div>${effSvg}</div>` : ''}
+    <div class="card pad"><h2>Weekly miles</h2>${wkSvg}</div>
+    <div class="grid2">
+      ${small('Sleep (h)', sleepPts, 4, 9, 'var(--g1)')}
+      ${small('Effort (1–10)', feltPts, 1, 10, 'var(--g2)')}
+      ${small('Temperature (°F)', tempPts, tr.length ? Math.min(...tr) - 3 : 0, tr.length ? Math.max(...tr) + 3 : 1, 'var(--g3)')}
+      ${small('Humidity (%)', humPts, 0, 100, 'var(--sky)')}
+    </div>
+    <div class="card pad"><div class="row" style="justify-content:space-between"><h2>Symptoms</h2><span class="hint">${symRuns.length} run${symRuns.length === 1 ? '' : 's'}</span></div>${symSvg}${dateLabels}</div>
+  </div>`;
+  bindRange(app);
+}
+function bindRange(app) { $$('[data-range]').forEach(b => b.addEventListener('click', () => { trendRange = +b.dataset.range; renderTrends(app); })); }
+
+/* ---------- Compare ---------- */
+async function renderCompare(app, idA, idB) {
+  const A = await analysis(), a = A.runs.find(r => r.id === idA), b = A.runs.find(r => r.id === idB);
+  if (!a || !b) { app.innerHTML = '<a class="back" href="#/runs">← Runs</a><div class="card empty"><p>One of these runs isn’t here anymore.</p></div>'; return; }
+  const [x, y] = a.started <= b.started ? [a, b] : [b, a];
+  const sx = A.scores[x.id] || {}, sy = A.scores[y.id] || {}, cx = A.ctx[x.id], cy = A.ctx[y.id];
+  const fmtD = r => new Date(r.started).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const row = (label, vx, vy, hl) => `<div class="cmp-row${hl ? ' hl' : ''}"><span>${label}</span><span>${vx ?? '—'}</span><span>${vy ?? '—'}</span></div>`;
+  const bv = (r, k) => { const v = B(r, k); return Array.isArray(v) ? (v.length ? v.join(', ') : null) : v; };
+  const diffNum = (p, q, t) => p != null && q != null && Math.abs(p - q) >= t;
+  const elev = r => r.indoor ? null : ((r.cond && r.cond.elev) ?? ((routes.find(z => z.id === r.routeId) || {}).elev));
+  const res = [
+    row('Score', sx.score != null ? `<span class="${labelClass(sx.label)}">${sx.label} ${sx.score}</span>` : null, sy.score != null ? `<span class="${labelClass(sy.label)}">${sy.label} ${sy.score}</span>` : null, sx.score != null && sy.score != null && Math.abs(sx.score - sy.score) >= 10),
+    row('Miles', x.miles.toFixed(2), y.miles.toFixed(2)), row('Pace', fmtPace(x), fmtPace(y), Math.abs((paceSec(x) || 0) - (paceSec(y) || 0)) >= 20),
+    row('Avg HR', x.hr, y.hr, diffNum(x.hr, y.hr, 5)), row('Beats /mi', beatsPerMile(x), beatsPerMile(y), diffNum(beatsPerMile(x), beatsPerMile(y), 60)),
+    row('Effort', x.felt != null ? x.felt + '/10' : null, y.felt != null ? y.felt + '/10' : null, diffNum(x.felt, y.felt, 2)),
+    row('Symptoms', (x.symptoms || []).join(', ') || 'None', (y.symptoms || []).join(', ') || 'None', (x.symptoms || []).join() !== (y.symptoms || []).join()),
+  ];
+  const diffs = [];
+  const drow = (key, label, vx, vy, hl) => { if (hl) diffs.push(key); return row(label, vx, vy, hl); };
+  const cat = (key, label) => { const p = bv(x, key), q = bv(y, key); return drow(key, label, p, q, p != null && q != null && p !== q); };
+  const tX = x.cond && x.cond.temp, tY = y.cond && y.cond.temp, hX = x.cond && x.cond.humidity, hY = y.cond && y.cond.humidity;
+  const inputs = [
+    cat('sleep', 'Sleep'), cat('meal', 'Last meal'), cat('mealType', 'Meal type'), cat('caffeine', 'Caffeine'), cat('water', 'Water'), cat('alcohol', 'Alcohol'), cat('soreness', 'Soreness'), cat('stress', 'Stress'),
+    drow('load', 'Load ratio', cx.load != null ? cx.load.toFixed(2) : null, cy.load != null ? cy.load.toFixed(2) : null, diffNum(cx.load, cy.load, 0.25)),
+    drow('backToBack', 'Days since last run', cx.gap, cy.gap, diffNum(cx.gap, cy.gap, 2)),
+    drow('temp', 'Temperature', tX != null ? tX + '°F' : null, tY != null ? tY + '°F' : null, diffNum(tX, tY, 8)),
+    drow('humidity', 'Humidity', hX != null ? hX + '%' : null, hY != null ? hY + '%' : null, diffNum(hX, hY, 15)),
+    drow('elev', 'Elevation', elev(x) != null ? '+' + elev(x) + ' ft' : null, elev(y) != null ? '+' + elev(y) + ' ft' : null, diffNum(elev(x), elev(y), 80)),
+    row('Where', x.indoor ? 'Indoor' : x.surface, y.indoor ? 'Indoor' : y.surface, x.indoor !== y.indoor),
+  ];
+  const rank = A.drivers.list.map(d => d.f.key), ri = k => { const i = rank.indexOf(k); return i < 0 ? 99 : i; };
+  const names = [...diffs].sort((p, q) => ri(p) - ri(q)).map(k => (FACTORS.find(f => f.key === k) || { name: k }).name.toLowerCase());
+  app.innerHTML = `<a class="back" href="javascript:history.back()">← Back</a>
+    <div class="head"><h1>Compare</h1></div>
+    <div class="stack">
+      <div class="cmp-row cmp-head"><span></span><a href="#/run/${x.id}">${fmtD(x)}</a><a href="#/run/${y.id}">${fmtD(y)}</a></div>
+      <div class="card pad"><div class="group-name">Result</div>${res.join('')}</div>
+      <div class="card pad"><div class="group-name">What was different</div>${inputs.join('')}</div>
+      <div class="card pad takeaway">${names.length ? `Highlighted rows changed the most. Biggest differences: <b>${esc(names.slice(0, 3).join(', '))}</b>.` : 'These runs had similar conditions going in.'}</div>
+    </div>`;
+}
+
+/* ---------- After-save summary ---------- */
+async function savedSheet(run) {
+  const A = await analysis(), S = A.scores[run.id] || {}, c = A.ctx[run.id];
+  const cards = (run.symptoms || []).map(sym => {
+    const tip = SYMPTOM_TIPS[sym] || ['Ease off and take note of it.', 'Keep an eye on whether it comes back.'];
+    const P = symptomPatterns(A.runs, A.ctx, sym), top = P.count >= 2 && P.list[0] && P.list[0].rate >= 0.5 ? P.list[0] : null;
+    return `<div class="sym-card"><div class="sym-k">You logged: ${esc(sym)}</div>
+      <div><b>Right now:</b> ${esc(tip[0])}</div><div><b>Next time:</b> ${esc(tip[1])}</div>
+      ${top ? `<div><b>Your pattern:</b> ${top.hits} of ${top.n} ${esc(sym.toLowerCase())} runs had ${esc(top.f.badText.toLowerCase())}.</div>` : ''}
+      ${PAIN.includes(sym) ? `<div class="hint">${DOCTOR_NOTE}</div>` : ''}</div>`;
+  }).join('');
+  const hit = A.drivers.list.filter(d => d.diff <= -5 && d.f.get(run, c) === 'bad')[0];
+  const sug = hit ? `<div class="sus-try" style="background:var(--soft);color:var(--ink)"><span class="sus-k" style="color:var(--muted)">What to try</span><div>${esc(hit.f.tip)} Runs with ${esc(hit.f.badText.toLowerCase())} score ${Math.abs(hit.diff)} points lower for you.</div></div>` : '';
+  const el = document.createElement('div'); el.className = 'sheet-wrap';
+  el.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Run saved">
+    <div class="grab"></div>
+    <div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="sub">Saved · ${fmtDay(run.started)}</div><h2 style="font:600 24px var(--serif)">${S.label ? S.label + ' session' : 'Run saved'}</h2></div>
+      ${S.score != null ? `<div style="text-align:right"><div class="sub">Score</div><div class="mono" style="font-size:32px;line-height:1">${S.score}</div></div>` : ''}</div>
+    ${S.vsPrev != null ? `<div class="sub">${S.vsPrev >= 0 ? '+' : ''}${S.vsPrev} vs your previous run</div>` : S.score == null ? '<div class="sub">Scores start once you have 5 runs with heart rate.</div>' : ''}
+    ${cards}${sug}
+    <div class="row" style="gap:8px"><button class="secondary" style="flex:1" id="sh-view">View run</button><a class="primary" style="flex:1;display:flex;align-items:center;justify-content:center;text-decoration:none" href="#/runs" id="sh-done">Done</a></div>
+  </div>`;
+  document.body.appendChild(el);
+  const close = () => el.remove();
+  el.addEventListener('click', e => { if (e.target === el) close(); });
+  $('#sh-view', el).addEventListener('click', close);
+  $('#sh-done', el).addEventListener('click', close);
+  window.addEventListener('hashchange', close, { once: true });
+  $('#sh-view', el).focus();
+}
 
 /* ---------- Spreadsheet: zip + xlsx reader/writer (no dependencies) ---------- */
 const Sheet = (() => {
