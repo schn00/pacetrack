@@ -208,6 +208,16 @@ a.kv.rec { color: var(--ink); text-decoration: none; }
 .grab { width: 40px; height: 5px; border-radius: 3px; background: var(--line); align-self: center; }
 .sym-card { border: 1px solid var(--g3); background: var(--warn-bg); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 1.4; }
 .sym-k { font-size: 12px; font-weight: 600; color: var(--warn-text); }
+.goal-t { font-weight: 600; font-size: 16px; }
+.dots { display: flex; gap: 4px; } .dot { flex: 1; height: 10px; border-radius: 3px; background: var(--soft); }
+.dot.hit { background: var(--g1); } .dot.miss { background: var(--g3); }
+.goal-tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 9px; margin-left: 8px; background: var(--soft); color: var(--muted); white-space: nowrap; }
+.goal-tag.hit { background: var(--blue-soft); color: var(--blue); } .goal-tag.miss { background: var(--orange-soft); color: var(--orange); }
+.q > span[data-q] { display: flex; align-items: center; justify-content: space-between; }
+.stepn { width: 28px; height: 28px; border-radius: 14px; background: var(--accent); color: var(--on-accent); display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; flex-shrink: 0; }
+.tmpl { margin: 0; padding: 10px; border-radius: 8px; background: var(--soft); font: 12px/1.45 var(--mono); white-space: pre-wrap; word-break: break-all; }
+.route { background: var(--soft); border-radius: 10px; }
+.health-banner { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px; background: color-mix(in srgb, #E0457B 14%, transparent); color: var(--ink); font-size: 13px; margin-bottom: 10px; }
 .map-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 10px; align-items: center; border-top: 1px solid var(--soft); padding-top: 10px; }
 .map-src { display: flex; flex-direction: column; min-width: 0; }
 .map-src b { font-weight: 500; font-size: 14px; overflow-wrap: anywhere; }
@@ -232,6 +242,8 @@ a.kv.rec { color: var(--ink); text-decoration: none; }
 
   <a href="#/drivers" data-tab="drivers"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 20V11M10 20V5M16 20v-7M21 20H3"/></svg>Drivers</a>
   <a href="#/trends" data-tab="trends"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/></svg>Trends</a>
+
+  <a href="#/goals" data-tab="goals"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="0.8" fill="currentColor"/></svg>Goals</a>
 </nav>
 <div class="toast" id="toast" role="status"></div>
 
@@ -331,6 +343,7 @@ async function loadMeta() {
   Object.assign(settings, (await DB.getMeta('settings')) || {});
   routes = (await DB.getMeta('routes')) || [];
   shoes = (await DB.getMeta('shoes')) || [];
+  goals = (await DB.getMeta('goals')) || [];
 }
 const saveSettings = () => DB.setMeta('settings', { ...settings });
 const saveRoutes = () => DB.setMeta('routes', routes);
@@ -343,13 +356,16 @@ async function route() {
   const h = location.hash.replace(/^#\/?/, '') || 'log';
   const [view, id, id2] = h.split('/');
   const app = $('#app');
-  $$('.tabbar a').forEach(a => a.setAttribute('aria-current', a.dataset.tab === (view === 'run' || view === 'compare' ? 'runs' : view === 'edit' ? 'log' : view === 'import' ? 'settings' : view) ? 'page' : 'false'));
+  $$('.tabbar a').forEach(a => a.setAttribute('aria-current', a.dataset.tab === (view === 'run' || view === 'compare' ? 'runs' : view === 'edit' ? 'log' : ['import', 'health', 'health-import'].includes(view) ? 'settings' : view) ? 'page' : 'false'));
   window.scrollTo(0, 0);
   if (view === 'runs') return renderRuns(app);
   if (view === 'run' && id) return renderRun(app, id);
   if (view === 'settings') return renderSettings(app);
   if (view === 'import') return renderImport(app);
+  if (view === 'health') return renderHealth(app);
+  if (view === 'health-import') return renderHealthImport(app);
   if (view === 'drivers') return renderDrivers(app);
+  if (view === 'goals') return id === 'new' ? renderNewGoal(app) : renderGoals(app);
   if (view === 'trends') return renderTrends(app);
   if (view === 'compare' && id && id2) return renderCompare(app, id, id2);
   if (view === 'edit' && id) return renderLog(app, await DB.run(id));
@@ -380,6 +396,8 @@ async function renderLog(app, existing) {
 
   app.innerHTML = `
   <div class="head"><h1>${existing ? 'Edit run' : 'Log a run'}</h1>${existing ? `<a class="back" href="#/run/${existing.id}">Cancel</a>` : GEAR}</div>
+  ${!existing && settings.health ? `<div class="health-banner" id="health-banner" hidden><span style="flex:1"></span><button type="button" class="small-btn" id="hb-manual">Enter manually</button></div>
+  <button type="button" class="secondary" id="paste-health" style="width:100%;margin-bottom:10px;min-height:44px;display:flex;align-items:center;justify-content:center;gap:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="#E0457B" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.5-9.2C1.2 8.6 3 5 6.6 5c2 0 3.4 1.1 4.2 2.4h2.4C14 6.1 15.4 5 17.4 5 21 5 22.8 8.6 21.5 11.8 19.5 16.4 12 21 12 21z"/></svg>Paste from Apple Health</button>` : ''}
   <form id="logform" class="stack" novalidate>
     <section class="card pad stack main-card">
       <div class="row started">
@@ -412,7 +430,7 @@ async function renderLog(app, existing) {
     <details id="d-before">
       <summary><span class="badge b-blue" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></span><span class="t"><b>Before the run</b><span id="before-sum"></span></span><span class="pm" aria-hidden="true"></span></summary>
       <div class="dbody">
-        ${BEFORE.map(b => `<div class="q"><span>${b.q}${b.multi ? ' <small>(pick any)</small>' : ''}</span>${segHtml('before.' + b.key, b.opts, form.before[b.key], b.multi)}</div>`).join('')}
+        ${BEFORE.map(b => `<div class="q"><span data-q="${b.key}">${b.q}${b.multi ? ' <small>(pick any)</small>' : ''}</span>${segHtml('before.' + b.key, b.opts, form.before[b.key], b.multi)}</div>`).join('')}
         <input id="f-foodnote" class="input" placeholder="What did you eat? e.g. bagel and coffee" aria-label="Food note" value="${esc(form.foodNote)}" ${form.foodNote ? '' : 'hidden'}>
         <button type="button" class="linkbtn" data-reveal="f-foodnote" ${form.foodNote ? 'hidden' : ''}>+ What did you eat?</button>
       </div>
@@ -469,6 +487,9 @@ async function renderLog(app, existing) {
   bindLog(app, existing);
   syncIndoor();
   if (!existing || (!existing.timeUnknown && !existing.indoor && (!existing.cond || existing.cond.temp == null))) queueWeather(300);
+  const ph = $('#paste-health'); if (ph) ph.addEventListener('click', pasteFromHealth);
+  const hm = $('#hb-manual'); if (hm) hm.addEventListener('click', () => { pendingIntake = null; route(); });
+  if (!existing && pendingIntake) { const d = pendingIntake; pendingIntake = null; if (ph) ph.hidden = true; applyIntake(d); }
   updateLogSummaries();
 }
 
@@ -540,6 +561,7 @@ function syncIndoor() {
   $('#f-route').closest('label').hidden = indoor;
 }
 function updateLogSummaries() {
+  goalTagsForForm();
   const ss = $('#sym-sum');
   ss.textContent = form.symptoms.length ? form.symptoms.join(', ') : 'None';
   ss.className = form.symptoms.length ? 'hot' : '';
@@ -653,7 +675,9 @@ function bindLog(app, existing) {
       weatherSource: form.surface !== 'Treadmill' && form._condAuto && ['temp', 'humidity', 'dew', 'wind'].some(k => form.cond[k] != null && !form._condEdited.has(k)) ? 'auto' : (existing ? existing.weatherSource : undefined),
       cond: form.surface === 'Treadmill' ? (form.cond.incline != null ? { incline: form.cond.incline } : {}) : (() => { const c = { ...form.cond }; delete c.incline; return c; })(),
       routeId: form.surface === 'Treadmill' ? '' : (form.routeId || ''), surface: form.surface, shoesId: form.shoesId || '', sick: form.sick,
-      created: existing ? existing.created : new Date().toISOString(), updated: new Date().toISOString(), source: existing ? existing.source : 'manual'
+      created: existing ? existing.created : new Date().toISOString(), updated: new Date().toISOString(), source: existing ? existing.source : (form.source || 'manual'),
+      rhr: existing ? existing.rhr : form.rhr ?? undefined, hrv: existing ? existing.hrv : form.hrv ?? undefined, sleepH: existing ? existing.sleepH : form.sleepH ?? undefined,
+      routePts: existing ? existing.routePts : undefined, elevSource: existing ? existing.elevSource : undefined
     };
     await DB.put(run);
     if (existing) toast('Changes saved'); else pendingSheet = run.id;
@@ -760,8 +784,9 @@ async function renderRun(app, id) {
       </div>
       <div class="card pad"><h2 style="margin-bottom:4px">Conditions and gear</h2>
         ${r.indoor ? kv('Where', 'Indoor, treadmill') : ''}${kv('Temperature', c.temp != null ? c.temp + '°F' + (r.weatherSource === 'auto' ? ' (auto)' : '') : '')}${kv('Humidity', c.humidity != null ? c.humidity + '%' : '')}${kv('Dew point', c.dew != null ? c.dew + '°F' : '')}${kv('Wind', c.wind != null ? c.wind + ' mph' : '')}
-        ${r.indoor ? '' : kv('Route', rt ? rt.name : 'None')}${kv('Surface', r.surface)}${kv('Shoes', sh ? sh.name : '')}${r.sick ? kv('Feeling sick', 'Yes') : ''}${kv('Avg power', r.power ? r.power + ' w' : '')}${kv('Cadence', r.cadence ? r.cadence + ' spm' : '')}${kv('Notes', r.notes)}${r.source === 'import' ? kv('Source', 'Imported') : ''}
+        ${r.indoor ? '' : kv('Route', rt ? rt.name : 'None')}${kv('Surface', r.surface)}${kv('Shoes', sh ? sh.name : '')}${r.sick ? kv('Feeling sick', 'Yes') : ''}${kv('Resting HR', r.rhr ? r.rhr + ' bpm' : '')}${kv('HRV', r.hrv ? r.hrv + ' ms' : '')}${kv('Avg power', r.power ? r.power + ' w' : '')}${kv('Cadence', r.cadence ? r.cadence + ' spm' : '')}${kv('Notes', r.notes)}${r.source === 'import' ? kv('Source', 'Imported') : r.source === 'health' ? kv('Source', 'Apple Health') : ''}
       </div>
+      ${r.routePts && r.routePts.length > 1 ? `<div class="card pad"><div class="row" style="justify-content:space-between"><h2>Route</h2><span class="hint">start ○ · end ● · home zone trimmed</span></div>${routeSvg(r.routePts)}${elevSvg(r.routePts)}</div>` : ''}
       <div class="row" style="gap:10px">
         <a class="secondary" href="#/edit/${r.id}" style="color:var(--ink);flex:1;display:inline-flex;align-items:center;justify-content:center;text-decoration:none">Edit run</a>
         <button class="secondary danger" id="del-run" style="flex:1">Delete run</button>
@@ -793,6 +818,12 @@ async function renderSettings(app) {
       <div class="srow"><span class="t">On this phone<span>${runs.length} run${runs.length === 1 ? '' : 's'} · ${(size / 1024).toFixed(1)} KB${persisted ? ' · protected storage' : ''}</span></span></div>
       <div class="srow"><span class="t">Back up now<span>Save a copy to Files or iCloud Drive</span></span><button class="small-btn dark" id="backup">Back up</button></div>
       <div class="srow"><span class="t">Restore<span>From a PaceTrack backup file</span></span><label class="small-btn" style="display:inline-flex;align-items:center">Choose file<input type="file" accept=".json,application/json" id="restore" class="vh"></label></div>
+    </div>
+
+    <div class="sec-title">Apple Health</div>
+    <div class="card">
+      <div class="srow"><span class="t">Apple Health<span>${settings.health ? 'After-run paste is on' : 'Fill runs from your watch, plus routes and elevation'}</span></span><a class="small-btn dark" href="#/health" style="display:inline-flex;align-items:center;text-decoration:none">${settings.health ? 'Open' : 'Set up'}</a></div>
+      <div class="srow"><span class="t">Home privacy zone<span>Route points this close to a run’s start and end are never saved</span></span><select class="input" id="pz" style="width:auto;height:36px;font-size:14px">${[0.1, 0.25, 0.5].map(v => `<option value="${v}"${(settings.privacyZone ?? 0.25) === v ? ' selected' : ''}>${v} mi</option>`).join('')}</select></div>
     </div>
 
     <div class="sec-title">Import and export</div>
@@ -828,6 +859,7 @@ async function renderSettings(app) {
   $('#s-types').addEventListener('change', async e => { settings.trackTypes = e.target.checked; await saveSettings(); renderSettings(app); });
   $('#backup').addEventListener('click', () => backup(runs));
   $('#export').addEventListener('click', exportExcel);
+  $('#pz').addEventListener('change', async e => { settings.privacyZone = +e.target.value; await saveSettings(); toast('Privacy zone saved'); });
   $('#loc-btn').addEventListener('click', () => {
     if (!navigator.geolocation) { toast('Location isn’t available on this device'); return; }
     navigator.geolocation.getCurrentPosition(async pos => {
@@ -862,7 +894,7 @@ async function renderSettings(app) {
 }
 
 async function backup(runs) {
-  const data = { app: 'PaceTrack', version: 1, exported: new Date().toISOString(), runs, routes, shoes, settings };
+  const data = { app: 'PaceTrack', version: 1, exported: new Date().toISOString(), runs, routes, shoes, settings, goals };
   const name = 'pacetrack-backup-' + new Date().toISOString().slice(0, 10) + '.json';
   const file = new File([JSON.stringify(data, null, 1)], name, { type: 'application/json' });
   try {
@@ -881,8 +913,8 @@ async function restore(file, app) {
     if (!confirm(`Restore ${data.runs.length} runs from ${new Date(data.exported).toLocaleDateString()}? Runs already on this phone are kept; matching runs are replaced.`)) return;
     for (const r of data.runs) await DB.put(r);
     const merge = (cur, inc) => { const ids = new Set(cur.map(x => x.id)); return cur.concat((inc || []).filter(x => !ids.has(x.id))); };
-    routes = merge(routes, data.routes); shoes = merge(shoes, data.shoes);
-    await saveRoutes(); await saveShoes();
+    routes = merge(routes, data.routes); shoes = merge(shoes, data.shoes); goals = merge(goals, data.goals).filter((g, i, a) => a.findIndex(x => x.type === g.type) === i);
+    await saveRoutes(); await saveShoes(); await saveGoals();
     toast('Restored ' + data.runs.length + ' runs'); renderSettings(app);
   } catch (e) { toast('That file isn’t a PaceTrack backup.'); }
 }
@@ -994,12 +1026,14 @@ const FACTORS = [
   { key: 'temp', name: 'Temperature', cat: 'Weather', badText: '80°F or hotter', goodText: 'Under 70°F', get: r => r.indoor || !r.cond || r.cond.temp == null ? null : r.cond.temp >= 80 ? 'bad' : r.cond.temp < 70 ? 'good' : 'mid', tip: 'On hot days, run earlier and slow down a little.', goal: null },
   { key: 'humidity', name: 'Humidity', cat: 'Weather', badText: '70%+ humidity', goodText: 'Under 50% humidity', get: r => r.indoor || !r.cond || r.cond.humidity == null ? null : r.cond.humidity >= 70 ? 'bad' : r.cond.humidity < 50 ? 'good' : 'mid', tip: 'On humid days, ease the pace and drink more.', goal: null },
   { key: 'elev', name: 'Hills', cat: 'Route', badText: '200+ ft of climbing', goodText: 'Under 150 ft', get: r => { if (r.indoor) return null; const e = (r.cond && r.cond.elev) ?? ((routes.find(x => x.id === r.routeId) || {}).elev); return e == null ? null : e >= 200 ? 'bad' : e < 150 ? 'good' : 'mid'; }, tip: 'Hilly routes cost more. Compare them with other hilly runs.', goal: null },
+  { key: 'rhr', name: 'Resting heart rate', cat: 'Recovery', badText: 'Resting HR 4+ above your usual', goodText: 'Resting HR at or below usual', get: (r, c) => r.rhr == null || c.rhrMed == null ? null : r.rhr >= c.rhrMed + 4 ? 'bad' : r.rhr <= c.rhrMed ? 'good' : 'mid', tip: 'When your resting heart rate is up, take it easy or rest.', goal: null },
   { key: 'sick', name: 'Feeling sick', cat: 'Other', badText: 'Feeling sick or run down', goodText: 'Feeling fine', get: r => r.source === 'import' ? null : r.sick ? 'bad' : 'good', tip: 'When you feel run down, rest or keep it very easy.', goal: null },
 ];
 
 function runContext(allRuns, scores) {
   const sorted = [...allRuns].sort((a, b) => a.started.localeCompare(b.started)), ctx = {};
-  sorted.forEach((r, i) => { const prev = sorted[i - 1]; ctx[r.id] = { load: scores[r.id] && scores[r.id].load, gap: prev ? dayNum(r.started) - dayNum(prev.started) : null, score: scores[r.id] && scores[r.id].score }; });
+  const rhrMed = median(allRuns.map(r => r.rhr).filter(v => v != null));
+  sorted.forEach((r, i) => { const prev = sorted[i - 1]; ctx[r.id] = { rhrMed: rhrMed ?? null, load: scores[r.id] && scores[r.id].load, gap: prev ? dayNum(r.started) - dayNum(prev.started) : null, score: scores[r.id] && scores[r.id].score }; });
   return ctx;
 }
 const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
@@ -1132,7 +1166,7 @@ async function renderDrivers(app) {
       <div class="card pad suspect">
         <div class="sus-k">Biggest suspect</div>
         ${top ? `<div class="sus-t">${esc(top.f.name)}</div><div class="sus-d">Runs with ${esc(top.f.badText.toLowerCase())} score ${Math.abs(top.diff)} points lower, based on ${top.nBad + top.nGood} runs.</div>
-          <div class="sus-try"><span class="sus-k">What to try</span><div>${esc(top.f.tip)}</div></div>`
+          <div class="sus-try"><span class="sus-k">What to try</span><div>${esc(top.f.tip)}</div>${FACTOR_GOAL[top.f.key] ? (goals.some(g => g.type === FACTOR_GOAL[top.f.key][0]) ? '<span class="sus-k" style="margin-top:4px">✓ This is one of your goals</span>' : `<button class="linkbtn" data-make-goal="${top.f.key}" style="color:#9EC0EC;margin-top:2px">+ Make this a goal</button>`) : ''}</div>`
         : `<div class="sus-d">No clear pattern yet. Keep logging “Before the run” and this will fill in.</div>`}
       </div>
       <div class="card pad stack">
@@ -1154,6 +1188,7 @@ async function renderDrivers(app) {
       </div>` : ''}
     </div>`;
   $$('[data-dv]').forEach(b => b.addEventListener('click', () => { driversView = b.dataset.dv; renderDrivers(app); }));
+  $$('[data-make-goal]').forEach(b => b.addEventListener('click', async () => { const [t, v] = FACTOR_GOAL[b.dataset.makeGoal]; if (await addGoal(t, v)) renderDrivers(app); }));
   $$('[data-sym-pick]').forEach(b => b.addEventListener('click', () => { driversSym = b.dataset.symPick; renderDrivers(app); }));
 }
 
@@ -1186,6 +1221,7 @@ async function renderTrends(app) {
   const LCOL = { Great: 'var(--g1)', Good: 'var(--g1)', Typical: 'var(--faint)', Rough: 'var(--g3)', Bad: 'var(--g3)' };
   const scoreSvg = `<svg viewBox="0 0 ${W} ${H1}" class="chart" role="img" aria-label="Session score over time">
     ${[25, 50, 75].map(y => `<line x1="0" x2="${W}" y1="${syS(y)}" y2="${syS(y)}" class="gridline"/>`).join('')}
+    ${(() => { const g = goals.find(g => g.type === 'score'); return g ? `<line x1="0" x2="${W}" y1="${syS(g.target)}" y2="${syS(g.target)}" stroke="var(--g1)" stroke-dasharray="2 4" stroke-width="1.5"/><text x="${W - 4}" y="${syS(g.target) - 4}" text-anchor="end" font-size="10" fill="var(--g1)">goal ${g.target}</text>` : ''; })()}
     ${svgLine(sc.map((r, i) => [tx(r), scRoll[i]]), W, H1, 0, 100, 'var(--ink)', { width: 2.5 })}
     ${sc.map(r => { const s = scores[r.id]; return `<circle cx="${sx(tx(r)).toFixed(1)}" cy="${syS(s.score).toFixed(1)}" r="4.5" fill="${r.indoor ? 'var(--card)' : LCOL[s.label]}" stroke="${LCOL[s.label]}" stroke-width="2"/>`; }).join('')}
   </svg>`;
@@ -1194,10 +1230,12 @@ async function renderTrends(app) {
   const ef = R.filter(r => !r.indoor && scores[r.id].adj);
   let effSvg = '';
   if (ef.length >= 3) {
-    const vals = ef.map(r => scores[r.id].adj), roll = rolling(vals, 5), lo = Math.min(...vals) * 0.98, hi = Math.max(...vals) * 1.02;
+    const gB = goals.find(g => g.type === 'bpm');
+    const vals = ef.map(r => scores[r.id].adj), roll = rolling(vals, 5), lo = Math.min(...vals, gB ? gB.target : Infinity) * 0.98, hi = Math.max(...vals) * 1.02;
     const H2 = 130, sy = y => H2 - 6 - (y - lo) / (hi - lo) * (H2 - 12);
     effSvg = `<svg viewBox="0 0 ${W} ${H2}" class="chart" role="img" aria-label="Heat-adjusted beats per mile over time">
       ${ef.map(r => `<circle cx="${sx(tx(r)).toFixed(1)}" cy="${sy(scores[r.id].adj).toFixed(1)}" r="3.5" fill="var(--faint)" opacity="0.7"/>`).join('')}
+      ${gB ? `<line x1="0" x2="${W}" y1="${sy(gB.target)}" y2="${sy(gB.target)}" stroke="var(--g1)" stroke-dasharray="2 4" stroke-width="1.5"/><text x="${W - 4}" y="${sy(gB.target) - 4}" text-anchor="end" font-size="10" fill="var(--g1)">goal ${gB.target}</text>` : ''}
       ${svgLine(ef.map((r, i) => [tx(r), roll[i]]), W, H2, lo, hi, 'var(--g1)', { width: 2.5 })}
     </svg><div class="axis"><span>${Math.round(hi)} beats/mi</span><span>${Math.round(lo)}</span></div>`;
     const firstAvg = mean(vals.slice(0, Math.min(5, vals.length))), lastAvg = mean(vals.slice(-5));
@@ -1209,8 +1247,10 @@ async function renderTrends(app) {
   const weeks = new Map();
   R.forEach(r => { const k = weekStart(r.started).getTime(); weeks.set(k, (weeks.get(k) || 0) + r.miles); });
   const wk = [...weeks.entries()].sort((a, b) => a[0] - b[0]);
-  const H3 = 120, maxMi = Math.max(...wk.map(w => w[1])) * 1.15, bw = Math.min(26, (W - 16) / wk.length - 4);
+  const gW = goals.find(g => g.type === 'weeklyMiles');
+  const H3 = 120, maxMi = Math.max(...wk.map(w => w[1]), gW ? gW.target : 0) * 1.15, bw = Math.min(26, (W - 16) / wk.length - 4);
   const wkSvg = `<svg viewBox="0 0 ${W} ${H3}" class="chart" role="img" aria-label="Weekly miles">
+    ${gW ? `<line x1="0" x2="${W}" y1="${(H3 - 14 - gW.target / maxMi * (H3 - 20)).toFixed(1)}" y2="${(H3 - 14 - gW.target / maxMi * (H3 - 20)).toFixed(1)}" stroke="var(--g1)" stroke-dasharray="2 4" stroke-width="1.5"/><text x="${W - 4}" y="${(H3 - 18 - gW.target / maxMi * (H3 - 20)).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--g1)">goal ${gW.target} mi</text>` : ''}
     ${wk.map((w, i) => { const x = 8 + (i + 0.5) * (W - 16) / wk.length - bw / 2, h = w[1] / maxMi * (H3 - 20); return `<rect x="${x.toFixed(1)}" y="${(H3 - 14 - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="var(--g2)" opacity="0.8"/>`; }).join('')}
   </svg><div class="axis"><span>${wk.length} weeks</span><span>peak ${Math.max(...wk.map(w => w[1])).toFixed(1)} mi</span></div>`;
 
@@ -1296,24 +1336,429 @@ async function savedSheet(run) {
       ${top ? `<div><b>Your pattern:</b> ${top.hits} of ${top.n} ${esc(sym.toLowerCase())} runs had ${esc(top.f.badText.toLowerCase())}.</div>` : ''}
       ${PAIN.includes(sym) ? `<div class="hint">${DOCTOR_NOTE}</div>` : ''}</div>`;
   }).join('');
-  const hit = A.drivers.list.filter(d => d.diff <= -5 && d.f.get(run, c) === 'bad')[0];
-  const sug = hit ? `<div class="sus-try" style="background:var(--soft);color:var(--ink)"><span class="sus-k" style="color:var(--muted)">What to try</span><div>${esc(hit.f.tip)} Runs with ${esc(hit.f.badText.toLowerCase())} score ${Math.abs(hit.diff)} points lower for you.</div></div>` : '';
+  const gRows = goals.filter(g => GOAL_TYPES[g.type].kind === 'habit').map(g => ({ g, T: GOAL_TYPES[g.type], v: GOAL_TYPES[g.type].check(run, c, g.target) })).filter(x => x.v != null);
+  const goalBlock = gRows.length ? `<div class="stack" style="gap:6px"><div class="group-name">Goals</div>${gRows.map(x => `<div><div class="row" style="justify-content:space-between;min-height:30px;font-size:14px"><span>${esc(goalLabel(x.g))}</span><span class="goal-tag ${x.v ? 'hit' : 'miss'}">${x.v ? 'Hit' : 'Missed'}</span></div>${x.v ? '' : `<div class="hint">Try: ${esc(x.T.tip)}</div>`}</div>`).join('')}</div>` : '';
+  const covered = new Set(gRows.map(x => x.g.type));
+  const hit = A.drivers.list.filter(d => d.diff <= -5 && d.f.get(run, c) === 'bad' && !(FACTOR_GOAL[d.f.key] && covered.has(FACTOR_GOAL[d.f.key][0])))[0];
+  const sug = hit ? `<div class="sus-try" style="background:var(--soft);color:var(--ink)"><span class="sus-k" style="color:var(--muted)">What to try</span><div>${esc(hit.f.tip)} Runs with ${esc(hit.f.badText.toLowerCase())} score ${Math.abs(hit.diff)} points lower for you.</div>${FACTOR_GOAL[hit.f.key] && !goals.some(g => g.type === FACTOR_GOAL[hit.f.key][0]) ? `<button class="linkbtn" id="sh-goal">+ Make this a goal</button>` : ''}</div>` : '';
   const el = document.createElement('div'); el.className = 'sheet-wrap';
   el.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Run saved">
     <div class="grab"></div>
     <div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="sub">Saved · ${fmtDay(run.started)}</div><h2 style="font:600 24px var(--serif)">${S.label ? S.label + ' session' : 'Run saved'}</h2></div>
       ${S.score != null ? `<div style="text-align:right"><div class="sub">Score</div><div class="mono" style="font-size:32px;line-height:1">${S.score}</div></div>` : ''}</div>
     ${S.vsPrev != null ? `<div class="sub">${S.vsPrev >= 0 ? '+' : ''}${S.vsPrev} vs your previous run</div>` : S.score == null ? '<div class="sub">Scores start once you have 5 runs with heart rate.</div>' : ''}
-    ${cards}${sug}
+    ${goalBlock}${cards}${sug}
     <div class="row" style="gap:8px"><button class="secondary" style="flex:1" id="sh-view">View run</button><a class="primary" style="flex:1;display:flex;align-items:center;justify-content:center;text-decoration:none" href="#/runs" id="sh-done">Done</a></div>
   </div>`;
   document.body.appendChild(el);
   const close = () => el.remove();
   el.addEventListener('click', e => { if (e.target === el) close(); });
   $('#sh-view', el).addEventListener('click', close);
+  const sg = $('#sh-goal', el); if (sg) sg.addEventListener('click', async () => { const [t, v] = FACTOR_GOAL[hit.f.key]; if (await addGoal(t, v)) sg.replaceWith(Object.assign(document.createElement('div'), { className: 'hint', textContent: '✓ Added to your goals' })); });
   $('#sh-done', el).addEventListener('click', close);
   window.addEventListener('hashchange', close, { once: true });
   $('#sh-view', el).focus();
+}
+
+/* ---------- Goals ---------- */
+const MEAL_H = { '<1 h': 0, '1–2 h': 1, '2–4 h': 2, '4 h+': 4, 'Fasted': 99 };
+const CAF_N = { 'None': 0, '1 cup': 1, '2+': 2 };
+const GOAL_TYPES = {
+  sleep: { kind: 'habit', field: 'sleep', name: 'Sleep before runs', cat: 'Sleep', targets: [6, 7, 8], def: 7, unit: 'h', label: t => `Sleep ${t}+ h before runs`, check: (r, c, t) => { const v = B(r, 'sleep'); return v ? SLEEP_H[v] >= t : null; }, tip: 'Try lights out a little earlier the night before a run.' },
+  meal: { kind: 'habit', field: 'meal', name: 'Eat well before running', cat: 'Food', targets: [1, 2, 4], def: 2, unit: 'h', label: t => `Eat ${t}+ h before runs`, check: (r, c, t) => { const v = B(r, 'meal'); return v ? MEAL_H[v] >= t : null; }, tip: 'If you run soon after waking, keep it to a small snack like a banana or toast.' },
+  mealLight: { kind: 'habit', field: 'mealType', name: 'Light meal before runs', cat: 'Food', label: () => 'Light meal before runs', check: r => { const v = B(r, 'mealType'); return v && v.length ? !(v.includes('Heavy') || v.includes('Fatty')) : null; }, tip: 'Save heavy or fatty meals for after the run.' },
+  caffeine: { kind: 'habit', field: 'caffeine', name: 'Limit caffeine', cat: 'Food', targets: [0, 1], def: 1, unit: 'cup', label: t => t === 0 ? 'No caffeine before runs' : `Max ${t} cup of caffeine before runs`, check: (r, c, t) => { const v = B(r, 'caffeine'); return v ? CAF_N[v] <= t : null; }, tip: 'Keep it to one cup before you head out.' },
+  water: { kind: 'habit', field: 'water', name: 'Stay hydrated', cat: 'Hydration', label: () => 'Normal water the day before', check: r => { const v = B(r, 'water'); return v ? v !== 'Low' : null; }, tip: 'Keep a water bottle nearby the day before a run.' },
+  alcohol: { kind: 'habit', field: 'alcohol', name: 'No alcohol the night before', cat: 'Hydration', label: () => 'No alcohol the night before', check: r => { const v = B(r, 'alcohol'); return v ? v === 'None' : null; }, tip: 'Plan runs for mornings after alcohol-free evenings.' },
+  load: { kind: 'habit', name: 'Build mileage steadily', cat: 'Fitness', targets: [1.2, 1.3, 1.5], def: 1.3, label: t => `Load ratio under ${t}`, check: (r, c, t) => c.load == null ? null : c.load <= t, tip: 'Keep this week’s miles close to your usual week.' },
+  restDay: { kind: 'habit', name: 'Rest day between runs', cat: 'Fitness', label: () => 'Rest day between runs', check: (r, c) => c.gap == null ? null : c.gap >= 2, tip: 'Leave at least one day off between runs.' },
+  score: { kind: 'outcome', name: 'Average session score', targets: [50, 60, 65, 70, 75], def: 60, label: t => `Average score ${t}+`, note: 'Your last 5 scored runs', better: 'higher' },
+  bpm: { kind: 'outcome', name: 'Beats per mile', label: t => `Usual beats per mile under ${t}`, note: 'Lower means fitter', better: 'lower', input: true },
+  weeklyMiles: { kind: 'outcome', name: 'Weekly miles', label: t => `${t} miles a week`, note: 'This week so far', better: 'higher', input: true },
+  runsWeek: { kind: 'outcome', name: 'Runs per week', targets: [2, 3, 4, 5], def: 3, label: t => `${t} runs a week`, note: 'This week so far', better: 'higher' },
+};
+const FACTOR_GOAL = { sleep: ['sleep', 7], meal: ['meal', 2], mealType: ['mealLight'], caffeine: ['caffeine', 1], water: ['water'], alcohol: ['alcohol'], load: ['load', 1.3], backToBack: ['restDay'] };
+let goals = [];
+const saveGoals = () => DB.setMeta('goals', goals);
+async function addGoal(type, target) {
+  if (goals.some(g => g.type === type)) { toast('You already have that goal'); return false; }
+  goals.push({ id: uid(), type, target: target ?? GOAL_TYPES[type].def ?? null, created: new Date().toISOString() });
+  await saveGoals(); toast('Goal added'); return true;
+}
+const goalLabel = g => GOAL_TYPES[g.type].label(g.target);
+
+function outcomeNow(g, runs, scores) {
+  const sorted = [...runs].sort((a, b) => b.started.localeCompare(a.started));
+  const wk = weekStart(new Date()).getTime(), thisWeek = runs.filter(r => weekStart(r.started).getTime() === wk);
+  if (g.type === 'score') { const s = sorted.map(r => scores[r.id] && scores[r.id].score).filter(v => v != null).slice(0, 5); return s.length ? Math.round(mean(s)) : null; }
+  if (g.type === 'bpm') { const r = sorted.find(r => scores[r.id] && scores[r.id].baseline && !r.indoor); return r ? scores[r.id].baseline : null; }
+  if (g.type === 'weeklyMiles') return Math.round(thisWeek.reduce((a, r) => a + r.miles, 0) * 10) / 10;
+  if (g.type === 'runsWeek') return thisWeek.length;
+  return null;
+}
+
+function habitStats(g, runs, scores, ctx) {
+  const T = GOAL_TYPES[g.type], sorted = [...runs].sort((a, b) => b.started.localeCompare(a.started));
+  const res = sorted.map(r => ({ r, v: T.check(r, ctx[r.id], g.target) }));
+  const known = res.filter(x => x.v != null);
+  const last8 = res.slice(0, 8).reverse();
+  const hitS = known.filter(x => x.v && scores[x.r.id] && scores[x.r.id].score != null).map(x => scores[x.r.id].score);
+  const missS = known.filter(x => !x.v && scores[x.r.id] && scores[x.r.id].score != null).map(x => scores[x.r.id].score);
+  return { last8, hits: last8.filter(x => x.v === true).length, knownN: last8.filter(x => x.v != null).length,
+    hitAvg: hitS.length >= 2 ? Math.round(mean(hitS)) : null, missAvg: missS.length >= 2 ? Math.round(mean(missS)) : null };
+}
+
+async function renderGoals(app) {
+  const runs = await DB.runs(), scores = computeScores(runs), ctx = runContext(runs, scores);
+  const habits = goals.filter(g => GOAL_TYPES[g.type].kind === 'habit'), outcomes = goals.filter(g => GOAL_TYPES[g.type].kind === 'outcome');
+  const habitCard = g => {
+    const T = GOAL_TYPES[g.type], st = habitStats(g, runs, scores, ctx);
+    return `<div class="card pad stack goal">
+      <div class="row" style="justify-content:space-between;align-items:flex-start"><div><div class="drv-cat" style="margin:0">${T.cat}</div><div class="goal-t">${esc(goalLabel(g))}</div></div><span class="mono" style="font-size:15px">${st.knownN ? `${st.hits}/${st.knownN}` : '—'}</span></div>
+      <div class="dots" aria-label="Last 8 runs">${st.last8.map(x => `<span class="dot ${x.v === true ? 'hit' : x.v === false ? 'miss' : ''}" title="${esc(fmtDay(x.r.started))}"></span>`).join('')}</div>
+      <div class="row" style="justify-content:space-between;font-size:13px;color:var(--muted)"><span>Avg score when hit <b class="mono" style="color:var(--blue)">${st.hitAvg ?? '—'}</b></span><span>When missed <b class="mono" style="color:var(--orange)">${st.missAvg ?? '—'}</b></span></div>
+      ${!st.knownN ? '<div class="hint">Log “Before the run” on new runs to track this.</div>' : ''}
+      <div class="row" style="justify-content:flex-end"><button class="linkbtn danger" data-del-goal="${g.id}" style="align-self:auto">Remove</button></div>
+    </div>`;
+  };
+  const outcomeCard = g => {
+    const T = GOAL_TYPES[g.type], now = outcomeNow(g, runs, scores);
+    let pct = 0, met = false;
+    if (now != null) { if (T.better === 'lower') { met = now <= g.target; pct = Math.min(100, g.target / now * 100); } else { met = now >= g.target; pct = Math.min(100, now / g.target * 100); } }
+    return `<div class="card pad stack goal">
+      <div class="row" style="justify-content:space-between"><div class="goal-t">${esc(goalLabel(g))}</div>${met ? '<span class="lab lab-good">Met</span>' : ''}</div>
+      <div class="row" style="justify-content:space-between;font-size:14px"><span class="sub">Now <b class="mono" style="color:var(--ink)">${now ?? '—'}</b></span><span class="sub">Target <b class="mono" style="color:var(--ink)">${g.target}</b></span></div>
+      <div class="bar"><div style="width:${pct}%;background:${met ? 'var(--g1)' : 'var(--g2)'}"></div></div>
+      <div class="row" style="justify-content:space-between"><span class="hint">${T.note}</span><button class="linkbtn danger" data-del-goal="${g.id}" style="align-self:auto">Remove</button></div>
+    </div>`;
+  };
+  app.innerHTML = `<div class="head"><h1>Goals</h1><div class="row"><a class="small-btn dark" href="#/goals/new" style="display:inline-flex;align-items:center;text-decoration:none;min-height:40px">+ New</a>${GEAR}</div></div>
+    ${!goals.length ? `<div class="card empty"><p>No goals yet. Add one here, or tap “Make this a goal” on a suggestion.</p><a class="secondary" href="#/goals/new" style="display:inline-flex;align-items:center;text-decoration:none">Add a goal</a></div>` : ''}
+    ${habits.length ? `<div class="sec-title" style="margin-top:4px">Habits</div><div class="stack">${habits.map(habitCard).join('')}</div>` : ''}
+    ${outcomes.length ? `<div class="sec-title">Outcomes</div><div class="stack">${outcomes.map(outcomeCard).join('')}</div>` : ''}`;
+  $$('[data-del-goal]').forEach(b => b.addEventListener('click', async () => {
+    if (!confirm('Remove this goal?')) return;
+    goals = goals.filter(g => g.id !== b.dataset.delGoal); await saveGoals(); renderGoals(app);
+  }));
+}
+
+async function renderNewGoal(app) {
+  const runs = await DB.runs(), scores = computeScores(runs);
+  const usual = outcomeNow({ type: 'bpm' }, runs, scores);
+  const weeks = new Map(); runs.forEach(r => { const k = weekStart(r.started).getTime(); weeks.set(k, (weeks.get(k) || 0) + r.miles); });
+  const avgWeek = weeks.size ? mean([...weeks.values()].slice(-8)) : 5;
+  const defs = { bpm: usual ? Math.round(usual * 0.97 / 5) * 5 : 1700, weeklyMiles: Math.round(avgWeek * 1.1) || 5 };
+  const item = (type) => {
+    const T = GOAL_TYPES[type], have = goals.some(g => g.type === type);
+    const ctrl = T.targets ? `<select class="input" data-target="${type}" style="height:40px;font-size:14px;width:auto">${T.targets.map(t => `<option value="${t}"${t === T.def ? ' selected' : ''}>${esc(T.label(t))}</option>`).join('')}</select>`
+      : T.input ? `<input class="input" data-target="${type}" inputmode="decimal" value="${defs[type]}" style="height:40px;width:90px;font-size:14px" aria-label="${esc(T.name)} target">` : '';
+    return `<div class="srow" style="flex-wrap:wrap"><span class="t" style="flex:1 1 60%">${esc(T.name)}<span>${esc(T.targets || T.input ? (T.note || T.cat || '') : T.label())}</span></span>
+      <div class="row">${ctrl}<button class="small-btn dark" data-add="${type}" ${have ? 'disabled' : ''}>${have ? 'Added' : 'Add'}</button></div></div>`;
+  };
+  const H = Object.keys(GOAL_TYPES).filter(k => GOAL_TYPES[k].kind === 'habit'), O = Object.keys(GOAL_TYPES).filter(k => GOAL_TYPES[k].kind === 'outcome');
+  app.innerHTML = `<a class="back" href="#/goals">← Goals</a><div class="head"><h1>New goal</h1></div>
+    <div class="sec-title" style="margin-top:4px">Habits</div><div class="card">${H.map(item).join('')}</div>
+    <div class="sec-title">Outcomes</div><div class="card">${O.map(item).join('')}</div>
+    <p class="hint" style="margin:14px 2px">Habit goals track what you log before each run. Outcome goals track results.</p>`;
+  $$('[data-add]').forEach(b => b.addEventListener('click', async () => {
+    const type = b.dataset.add, el = $(`[data-target="${type}"]`);
+    let t = el ? num(el.value) : null;
+    if (el && (t == null || t <= 0) && !(type === 'caffeine' && t === 0)) { el.focus(); toast('Enter a target'); return; }
+    if (await addGoal(type, t)) location.hash = '#/goals';
+  }));
+}
+
+function goalTagsForForm() {
+  $$('[data-goal-tag]').forEach(el => el.remove());
+  goals.forEach(g => {
+    const T = GOAL_TYPES[g.type]; if (T.kind !== 'habit' || !T.field) return;
+    const q = $(`[data-q="${T.field}"]`); if (!q) return;
+    const v = T.check({ before: form.before }, {}, g.target);
+    const tag = document.createElement('span'); tag.dataset.goalTag = '1';
+    tag.className = 'goal-tag ' + (v === true ? 'hit' : v === false ? 'miss' : '');
+    tag.textContent = v === true ? 'Goal · hit' : v === false ? 'Goal · missed' : 'Goal';
+    tag.title = goalLabel(g); q.appendChild(tag);
+  });
+}
+
+/* ---------- Apple Health: paste intake ---------- */
+function parseQty(v) { if (v == null || v === '') return null; if (typeof v === 'number') return { n: v, u: '' }; const m = String(v).replace(/,/g, '').match(/(-?\d+(?:\.\d+)?)\s*([a-zA-Z%/°]*)/); return m ? { n: +m[1], u: m[2].toLowerCase() } : null; }
+function parseDistance(v) { const q = parseQty(v); if (!q) return null; if (/^km/.test(q.u)) return q.n * 0.621371; if (q.u === 'm') return q.n / 1609.344; return q.n; }
+function parseSecs(v) {
+  if (v == null || v === '') return null; if (typeof v === 'number') return v > 600 || !String(v).includes('.') ? v : v * 60;
+  const s = String(v).trim();
+  if (/^\d+(:\d{1,2}){1,2}$/.test(s)) return parseDuration(s);
+  let t = 0, hit = false;
+  s.replace(/(\d+(?:\.\d+)?)\s*(h|hr|hrs|hour|hours|m|min|mins|minute|minutes|s|sec|secs|second|seconds)\b/gi, (_, n, u) => { hit = true; u = u.toLowerCase(); t += +n * (u[0] === 'h' ? 3600 : u[0] === 'm' ? 60 : 1); });
+  if (hit) return t; const n = parseFloat(s); return isFinite(n) ? n : null;
+}
+function parseHours(v) { const s = parseSecs(v); if (s == null) return null; return typeof v === 'number' || /^\d+(\.\d+)?$/.test(String(v).trim()) ? +v : s / 3600; }
+function parseWhen(v) {
+  if (!v) return null; let d = new Date(v); if (!isNaN(d)) return d;
+  const s = String(v).replace(' at ', ' ').replace(/\u202f/g, ' ');
+  d = new Date(s); if (!isNaN(d)) return d;
+  const m = s.match(/(\w{3})\w*\s+(\d{1,2}),?\s+(\d{4})\s+(\d{1,2}):(\d{2})\s*([AP]M)?/i);
+  if (m) { const mo = 'janfebmaraprmayjunjulaugsepoctnovdec'.indexOf(m[1].toLowerCase().slice(0, 3)) / 3; let h = +m[4]; if (m[6]) { h = h % 12 + (/p/i.test(m[6]) ? 12 : 0); } return new Date(+m[3], mo, +m[2], h, +m[5]); }
+  return null;
+}
+const sleepBucket = h => h == null ? null : h < 5 ? '<5 h' : h < 6 ? '5–6' : h < 7 ? '6–7' : h < 8 ? '7–8' : '8+';
+function parseHealthPayload(text) {
+  let raw = String(text || '').trim(); const i = raw.indexOf('{'), j = raw.lastIndexOf('}');
+  if (i < 0 || j < i) throw new Error('no data');
+  const o = JSON.parse(raw.slice(i, j + 1));
+  if (o.app && o.app !== 'PaceTrack') throw new Error('not ours');
+  const pick = (...ks) => { for (const k of ks) if (o[k] != null && o[k] !== '') return o[k]; return null; };
+  const start = parseWhen(pick('start', 'startDate', 'started'));
+  let seconds = parseSecs(pick('seconds', 'duration', 'time'));
+  const end = parseWhen(pick('end', 'endDate'));
+  if (!seconds && start && end) seconds = (end - start) / 1000;
+  const miles = parseDistance(pick('distance', 'miles', 'km'));
+  const hrQ = parseQty(pick('hr', 'heartRate', 'avgHR')), elQ = parseQty(pick('elevation', 'elev', 'elevationGain'));
+  const indoorV = pick('indoor', 'isIndoor'); const indoor = indoorV === true || /^(yes|true|1)$/i.test(String(indoorV || ''));
+  const out = {
+    start, seconds: seconds ? Math.round(seconds) : null, miles: miles ? Math.round(miles * 100) / 100 : null,
+    hr: hrQ ? Math.round(hrQ.n) : null, elev: elQ ? Math.round(elQ.u === 'm' ? elQ.n * 3.28084 : elQ.u === 'cm' ? elQ.n / 30.48 : elQ.n) : null,
+    indoor, sleepH: parseHours(pick('sleepHours', 'sleep')), rhr: parseQty(pick('rhr', 'restingHR')) ? Math.round(parseQty(pick('rhr', 'restingHR')).n) : null,
+    hrv: parseQty(pick('hrv', 'HRV')) ? Math.round(parseQty(pick('hrv', 'HRV')).n) : null,
+  };
+  if (!out.miles && !out.seconds) throw new Error('empty');
+  return out;
+}
+let pendingIntake = null;
+async function pasteFromHealth() {
+  let text;
+  try { text = await navigator.clipboard.readText(); } catch (e) { toast('Couldn’t read the clipboard. Tap Paste when iPhone asks.'); return; }
+  let data;
+  try { data = parseHealthPayload(text); } catch (e) { toast('No run from Apple Health on the clipboard. Run the shortcut first.'); return; }
+  const runs = await DB.runs();
+  if (data.start && runs.some(r => Math.abs(new Date(r.started) - data.start) < 5 * 60000 && Math.abs(r.miles - (data.miles || 0)) < 0.05)) { toast('That run is already logged'); return; }
+  pendingIntake = data; await DB.setMeta('healthLastPaste', new Date().toISOString());
+  if (location.hash.replace(/^#\/?/, '') === 'log' || location.hash === '') route(); else location.hash = '#/log';
+}
+function applyIntake(data) {
+  form.source = 'health';
+  if (data.start) { $('#f-started').value = toLocalInput(data.start); form._startedTouched = true; form._startedEdited = true; }
+  if (data.miles) $('#f-miles').value = data.miles;
+  if (data.seconds) $('#f-time').value = fmtDur(data.seconds);
+  if (data.hr) $('#f-hr').value = data.hr;
+  if (data.indoor) { form.surface = 'Treadmill'; $$('[data-seg="surface"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.val === 'Treadmill')); syncIndoor(); }
+  if (data.elev != null && !data.indoor) { form.cond.elev = data.elev; const e = $('#f-elev'); if (e) e.value = data.elev; form._condEdited.add('elev'); }
+  if (data.sleepH != null) { form.before.sleep = sleepBucket(data.sleepH); $$('[data-seg="before.sleep"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.val === form.before.sleep)); }
+  form.rhr = data.rhr; form.hrv = data.hrv; form.sleepH = data.sleepH;
+  readTimes(); updateLogSummaries(); queueWeather(200);
+  const bn = $('#health-banner');
+  bn.hidden = false;
+  bn.querySelector('span').textContent = `Filled from Apple Health${data.start ? ' · started ' + data.start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : ''}${data.sleepH != null ? ' · ' + data.sleepH.toFixed(1) + ' h sleep' : ''}`;
+}
+
+/* ---------- Apple Health export (export.zip): routes and elevation ---------- */
+async function zipIndex(file) {
+  const tailLen = Math.min(file.size, 65557 + 22);
+  const tail = new Uint8Array(await file.slice(file.size - tailLen).arrayBuffer()), tv = new DataView(tail.buffer);
+  let e = -1; for (let i = tail.length - 22; i >= 0; i--) if (tv.getUint32(i, true) === 0x06054b50) { e = i; break; }
+  if (e < 0) throw new Error('not a zip');
+  let count = tv.getUint16(e + 10, true), cdSize = tv.getUint32(e + 12, true), cdOff = tv.getUint32(e + 16, true);
+  // zip64
+  if (cdOff === 0xFFFFFFFF || count === 0xFFFF) {
+    const loc = e - 20; if (loc >= 0 && tv.getUint32(loc, true) === 0x07064b50) {
+      const z64off = Number(tv.getBigUint64(loc + 8, true));
+      const z = new DataView(await file.slice(z64off, z64off + 56).arrayBuffer());
+      count = Number(z.getBigUint64(32, true)); cdSize = Number(z.getBigUint64(40, true)); cdOff = Number(z.getBigUint64(48, true));
+    }
+  }
+  const cd = new Uint8Array(await file.slice(cdOff, cdOff + cdSize).arrayBuffer()), v = new DataView(cd.buffer), dec = new TextDecoder();
+  const files = {}; let p = 0;
+  for (let n = 0; n < count && p < cd.length; n++) {
+    const method = v.getUint16(p + 10, true); let csize = v.getUint32(p + 20, true), usize = v.getUint32(p + 24, true);
+    const nlen = v.getUint16(p + 28, true), elen = v.getUint16(p + 30, true), clen = v.getUint16(p + 32, true);
+    let off = v.getUint32(p + 42, true); const name = dec.decode(cd.subarray(p + 46, p + 46 + nlen));
+    if (csize === 0xFFFFFFFF || usize === 0xFFFFFFFF || off === 0xFFFFFFFF) {
+      let q = p + 46 + nlen; const end = q + elen;
+      while (q < end) { const id = v.getUint16(q, true), sz = v.getUint16(q + 2, true); if (id === 1) { let r = q + 4; if (usize === 0xFFFFFFFF) { usize = Number(v.getBigUint64(r, true)); r += 8; } if (csize === 0xFFFFFFFF) { csize = Number(v.getBigUint64(r, true)); r += 8; } if (off === 0xFFFFFFFF) off = Number(v.getBigUint64(r, true)); } q += 4 + sz; }
+    }
+    files[name] = { method, csize, off }; p += 46 + nlen + elen + clen;
+  }
+  const dataStart = async f => { const h = new DataView(await file.slice(f.off, f.off + 30).arrayBuffer()); return f.off + 30 + h.getUint16(26, true) + h.getUint16(28, true); };
+  const stream = async name => { const f = files[name]; const s = await dataStart(f); const b = file.slice(s, s + f.csize).stream(); return f.method === 8 ? b.pipeThrough(new DecompressionStream('deflate-raw')) : b; };
+  const text = async name => new Response(await stream(name)).text();
+  return { files, stream, text };
+}
+
+function attrs(tag) { const o = {}; tag.replace(/(\w+)="([^"]*)"/g, (_, k, v) => { o[k] = v; }); return o; }
+const healthDate = s => { const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2}) ([+-]\d{4})$/); return m ? new Date(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}${m[7].slice(0, 3)}:${m[7].slice(3)}`) : new Date(s); };
+
+async function scanWorkouts(Z, xmlName, onProgress) {
+  const reader = (await Z.stream(xmlName)).pipeThrough(new TextDecoderStream()).getReader();
+  let buf = '', read = 0; const out = [];
+  for (;;) {
+    const { value, done } = await reader.read(); if (done) break;
+    buf += value; read += value.length; if (onProgress) onProgress(read);
+    let i;
+    while ((i = buf.indexOf('<Workout ')) >= 0) {
+      const selfEnd = buf.indexOf('/>', i), gt = buf.indexOf('>', i);
+      if (gt < 0) break;
+      let block;
+      if (selfEnd >= 0 && selfEnd + 1 === gt) block = buf.slice(i, gt + 1);
+      else { const end = buf.indexOf('</Workout>', i); if (end < 0) break; block = buf.slice(i, end + 10); }
+      buf = buf.slice(i + block.length);
+      if (!/workoutActivityType="HKWorkoutActivityTypeRunning"/.test(block)) continue;
+      const a = attrs(block.slice(0, block.indexOf('>') + 1));
+      const meta = {}; block.replace(/<MetadataEntry key="(\w+)" value="([^"]*)"/g, (_, k, v) => { meta[k] = v; });
+      const stat = {}; block.replace(/<WorkoutStatistics ([^>]*)\/?>/g, (_, t) => { const s = attrs(t); stat[s.type] = s; });
+      const routeM = block.match(/<FileReference path="([^"]+)"/);
+      let miles = null;
+      const dist = stat.HKQuantityTypeIdentifierDistanceWalkingRunning;
+      const dv = a.totalDistance ? [+a.totalDistance, a.totalDistanceUnit] : dist ? [+dist.sum, dist.unit] : null;
+      if (dv) miles = dv[1] === 'km' ? dv[0] * 0.621371 : dv[1] === 'm' ? dv[0] / 1609.344 : dv[0];
+      const durMin = a.durationUnit === 'min' ? +a.duration : a.durationUnit === 's' ? +a.duration / 60 : +a.duration;
+      const elevM = meta.HKElevationAscended ? parseQty(meta.HKElevationAscended) : null;
+      out.push({
+        start: healthDate(a.startDate), seconds: Math.round(durMin * 60), miles: miles ? Math.round(miles * 100) / 100 : null,
+        hr: stat.HKQuantityTypeIdentifierHeartRate ? Math.round(+stat.HKQuantityTypeIdentifierHeartRate.average) : null,
+        elev: elevM ? Math.round(elevM.u === 'cm' ? elevM.n / 30.48 : elevM.u === 'm' ? elevM.n * 3.28084 : elevM.n) : null,
+        indoor: meta.HKIndoorWorkout === '1', route: routeM ? routeM[1].replace(/^\//, '') : null,
+      });
+    }
+    if (buf.length > 2e6 && buf.indexOf('<Workout ') < 0) buf = buf.slice(-2000);
+  }
+  return out;
+}
+
+function parseGpx(text) {
+  const pts = [];
+  text.replace(/<trkpt\b([^>]*)>([\s\S]*?)<\/trkpt>/g, (_, at, inner) => { const la = at.match(/lat="([-\d.]+)"/), lo = at.match(/lon="([-\d.]+)"/); if (!la || !lo) return; const e = inner.match(/<ele>([-\d.]+)<\/ele>/); pts.push([+la[1], +lo[1], e ? +e[1] : null]); });
+  return pts;
+}
+const distM = (a, b) => { const R = 6371e3, t = Math.PI / 180, dLa = (b[0] - a[0]) * t, dLo = (b[1] - a[1]) * t; const x = Math.sin(dLa / 2) ** 2 + Math.cos(a[0] * t) * Math.cos(b[0] * t) * Math.sin(dLo / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); };
+function processRoute(pts, zoneMi) {
+  if (pts.length < 5) return null;
+  // elevation gain with a 1 m dead band to ignore GPS noise
+  let gain = 0, base = pts.find(p => p[2] != null); base = base ? base[2] : null;
+  for (const p of pts) { if (p[2] == null || base == null) continue; if (p[2] > base + 1) { gain += p[2] - base; base = p[2]; } else if (p[2] < base - 1) base = p[2]; }
+  const zone = zoneMi * 1609.344, s = pts[0], e = pts[pts.length - 1];
+  const kept = pts.filter(p => distM(p, s) > zone && distM(p, e) > zone);
+  const step = Math.max(1, Math.ceil(kept.length / 200));
+  const simple = kept.filter((_, i) => i % step === 0).map(p => [Math.round(p[0] * 1e5) / 1e5, Math.round(p[1] * 1e5) / 1e5, p[2] != null ? Math.round(p[2]) : null]);
+  return { gainFt: Math.round(gain * 3.28084), points: simple };
+}
+
+function routeSvg(points, w = 340, h = 180) {
+  if (!points || points.length < 2) return '';
+  const lat0 = points[0][0] * Math.PI / 180, xs = points.map(p => p[1] * Math.cos(lat0)), ys = points.map(p => p[0]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  const sc = Math.min((w - 20) / (maxX - minX || 1e-6), (h - 20) / (maxY - minY || 1e-6));
+  const ox = (w - (maxX - minX) * sc) / 2, oy = (h - (maxY - minY) * sc) / 2;
+  const P = points.map((p, i) => [(ox + (xs[i] - minX) * sc).toFixed(1), (h - oy - (ys[i] - minY) * sc).toFixed(1)]);
+  return `<svg viewBox="0 0 ${w} ${h}" class="chart route" role="img" aria-label="Route outline"><polyline points="${P.map(p => p.join(',')).join(' ')}" fill="none" stroke="var(--g1)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${P[0][0]}" cy="${P[0][1]}" r="5" fill="var(--card)" stroke="var(--g1)" stroke-width="2.5"/><circle cx="${P[P.length - 1][0]}" cy="${P[P.length - 1][1]}" r="5" fill="var(--g3)"/></svg>`;
+}
+function elevSvg(points, w = 340, h = 70) {
+  const el = points.map(p => p[2]).filter(v => v != null); if (el.length < 5) return '';
+  const lo = Math.min(...el), hi = Math.max(...el);
+  const P = el.map((v, i) => `${(i / (el.length - 1) * w).toFixed(1)},${(h - 4 - (v - lo) / (hi - lo || 1) * (h - 8)).toFixed(1)}`);
+  return `<svg viewBox="0 0 ${w} ${h}" class="chart" aria-label="Elevation profile"><polygon points="0,${h} ${P.join(' ')} ${w},${h}" fill="color-mix(in srgb, var(--g3) 25%, transparent)"/><polyline points="${P.join(' ')}" fill="none" stroke="var(--g3)" stroke-width="2"/></svg><div class="axis"><span>${Math.round(lo * 3.28084)} ft</span><span>${Math.round(hi * 3.28084)} ft</span></div>`;
+}
+
+let hx = null;
+async function renderHealthImport(app) {
+  const zoneMi = settings.privacyZone ?? 0.25;
+  app.innerHTML = `<a class="back" href="#/health">← Apple Health</a><div class="head"><h1>Health export</h1></div>
+    <div class="stack">
+      <div class="card pad stack">
+        <div class="hint" style="font-size:14px;line-height:1.5">On your iPhone: <b>Health</b> app → your picture (top right) → <b>Export All Health Data</b> → <b>Save to Files</b>. It can take a few minutes. Then choose the file here.</div>
+        <label class="primary" style="display:flex;align-items:center;justify-content:center">Choose export.zip<input type="file" id="hx-file" accept=".zip,application/zip" class="vh"></label>
+        <div class="hint">Read on this phone only. Route points within ${zoneMi} mi of each run’s start and end are dropped before anything is saved.</div>
+      </div>
+      <div id="hx-out"></div>
+    </div>`;
+  $('#hx-file').addEventListener('change', async e => {
+    const f = e.target.files[0]; if (!f) return;
+    const out = $('#hx-out'); out.innerHTML = `<div class="card pad"><div class="sub" id="hx-prog">Reading ${(f.size / 1048576).toFixed(0)} MB…</div></div>`;
+    try {
+      const Z = await zipIndex(f);
+      const xmlName = Object.keys(Z.files).find(n => /(^|\/)export\.xml$/.test(n));
+      if (!xmlName) throw new Error('no export.xml');
+      const prog = $('#hx-prog');
+      const workouts = await scanWorkouts(Z, xmlName, n => { prog.textContent = `Scanning… ${(n / 1048576).toFixed(0)} MB read`; });
+      const runs = await DB.runs();
+      const matches = [], fresh = [];
+      for (const w of workouts) {
+        if (!w.miles) continue;
+        const day = w.start.toDateString();
+        const m = runs.find(r => new Date(r.started).toDateString() === day && Math.abs(r.miles - w.miles) / w.miles < 0.06);
+        (m ? matches : fresh).push({ w, run: m });
+      }
+      hx = { Z, matches, fresh, file: f };
+      const withRoute = matches.filter(x => x.w.route).length;
+      out.innerHTML = `<div class="card pad stack"><h2>Found ${workouts.length} runs in Apple Health</h2>
+        <div class="imp-stats" style="grid-template-columns:repeat(3,1fr)"><div><b class="mono">${matches.length}</b><span>match your runs</span></div><div><b class="mono">${withRoute}</b><span>with routes</span></div><div><b class="mono">${fresh.length}</b><span>not in PaceTrack</span></div></div>
+        <div class="hint">Matched runs get a route outline, plus elevation if they don’t have it. Everything else you logged stays as it is.</div>
+        ${fresh.length ? `<label class="toggle">Also add the ${fresh.length} runs that aren’t in PaceTrack<input type="checkbox" id="hx-add"></label>` : ''}
+        <button class="primary" id="hx-go" ${matches.length || fresh.length ? '' : 'disabled'}>Update runs</button></div>`;
+      $('#hx-go').addEventListener('click', applyHealthExport);
+    } catch (err) {
+      out.innerHTML = `<div class="card pad"><div class="err">Couldn’t read that file. Make sure it’s the export.zip from the Health app.</div></div>`;
+    }
+  });
+}
+async function applyHealthExport() {
+  const btn = $('#hx-go'); btn.disabled = true;
+  const zoneMi = settings.privacyZone ?? 0.25, addNew = $('#hx-add') && $('#hx-add').checked;
+  let routesN = 0, added = 0; const todo = hx.matches.concat(addNew ? hx.fresh : []);
+  for (let k = 0; k < todo.length; k++) {
+    btn.textContent = `Updating ${k + 1}/${todo.length}…`;
+    const { w } = todo[k]; let run = todo[k].run;
+    let R = null;
+    if (w.route) { const name = Object.keys(hx.Z.files).find(n => n.endsWith(w.route)); if (name) { try { R = processRoute(parseGpx(await hx.Z.text(name)), zoneMi); } catch (e) {} } }
+    if (!run) {
+      run = { id: uid(), started: w.start.toISOString(), miles: w.miles, duration: w.seconds, hr: w.hr, type: 'Easy', felt: null, symptoms: [], symptomNote: '', before: {}, foodNote: '', indoor: w.indoor, cond: {}, routeId: '', surface: w.indoor ? 'Treadmill' : 'Road', shoesId: '', sick: false, source: 'health', created: new Date().toISOString(), updated: new Date().toISOString() };
+      added++;
+    }
+    run.cond = run.cond || {};
+    const gain = w.elev != null ? w.elev : R ? R.gainFt : null;
+    if (gain != null && !run.indoor && run.cond.elev == null) { run.cond.elev = gain; run.elevSource = 'health'; }
+    if (R && R.points.length > 1 && !run.indoor) { run.routePts = R.points; routesN++; }
+    if (!run.hr && w.hr) run.hr = w.hr;
+    run.updated = new Date().toISOString();
+    await DB.put(run);
+  }
+  await DB.setMeta('lastHealthExport', { at: new Date().toISOString(), routes: routesN, added });
+  toast(`Updated ${todo.length - added} runs${added ? `, added ${added}` : ''}`); hx = null; location.hash = '#/runs';
+}
+
+/* ---------- Apple Health setup guide ---------- */
+const SHORTCUT_TEMPLATE = `{"app":"PaceTrack","start":"[Start Date]","distance":"[Total Distance]","duration":"[Duration]","hr":"[Average heart rate]","indoor":"[Is Indoor]","sleepHours":"[Sleep hours]","rhr":"[Resting heart rate]","hrv":"[HRV]"}`;
+async function renderHealth(app) {
+  const last = await DB.getMeta('healthLastPaste'), lastX = await DB.getMeta('lastHealthExport');
+  const step = (n, title, body) => `<div class="card pad" style="display:flex;gap:12px"><div class="stepn">${n}</div><div class="stack" style="gap:6px;flex:1;min-width:0"><b>${title}</b>${body}</div></div>`;
+  const P = t => `<div style="font-size:14px;line-height:1.5">${t}</div>`;
+  app.innerHTML = `<a class="back" href="#/settings">← Settings</a><div class="head"><h1>Apple Health</h1></div>
+    <div class="stack">
+      <div class="card pad stack">
+        <div class="kv"><span>After-run paste</span><span>${settings.health ? (last ? 'Last used ' + new Date(last).toLocaleDateString() : 'On') : 'Not set up'}</span></div>
+        <div class="kv"><span>Health export</span><span>${lastX ? new Date(lastX.at).toLocaleDateString() + ' · ' + lastX.routes + ' routes' : 'Never'}</span></div>
+        <a class="secondary" href="#/health-import" style="color:var(--ink);display:inline-flex;align-items:center;justify-content:center;text-decoration:none">Import Health export (routes and elevation)</a>
+      </div>
+      <div class="sec-title" style="margin-top:6px">Set up the after-run shortcut · about 5 minutes</div>
+      <div class="hint" style="margin:-4px 2px 2px">Menu names can differ slightly between iOS versions.</div>
+      ${step(1, 'Create the shortcut', P('Open <b>Shortcuts</b> → <b>+</b> → name it <b>PaceTrack Run</b>.'))}
+      ${step(2, 'Get your latest run', P('Add <b>Find Workouts</b> (or <b>Find Health Samples</b> → Workouts). Filter Type is <b>Running</b>, sort by Start Date latest first, limit 1.') + P('Add <b>Find Health Samples</b> → Heart Rate between the workout’s start and end, then <b>Calculate Statistics</b> → Average.'))}
+      ${step(3, 'Add last night (optional)', P('Add <b>Find Health Samples</b> → Sleep (last 12 hours), and → Resting Heart Rate and Heart Rate Variability (latest 1). Sleep totals can be added up with <b>Calculate Statistics</b> → Sum.'))}
+      ${step(4, 'Build the message', P('Add a <b>Text</b> action and paste this in. Replace each [bracket] with the matching variable from the steps above (tap and hold → Select Variable). Delete any you skipped.') + `<pre class="tmpl" id="tmpl">${esc(SHORTCUT_TEMPLATE)}</pre><button class="small-btn" id="copy-tmpl" style="align-self:flex-start">Copy template</button>`)}
+      ${step(5, 'Copy and notify', P('Add <b>Copy to Clipboard</b>, then <b>Show Notification</b> with “Run copied. Open PaceTrack and tap Paste.”'))}
+      ${step(6, 'Run it automatically', P('Shortcuts → <b>Automation</b> → <b>+</b> → <b>Apple Watch Workout</b> → Ends → Running → run <b>PaceTrack Run</b>, and choose Run Immediately.') + P('No watch automation? Put the shortcut on your Home Screen and tap it after a run.'))}
+      ${step(7, 'Try it', P('Run the shortcut once (allow Health access when asked), then come back and tap the button. Or test with a sample run first.') + `<div class="row" style="flex-wrap:wrap"><button class="small-btn dark" id="try-paste">Paste from Apple Health</button><button class="small-btn" id="try-sample">Try a sample run</button></div>`)}
+      <div class="card pad"><label class="toggle" style="margin:0">Show “Paste from Apple Health” on Log a run<input type="checkbox" id="h-on" ${settings.health ? 'checked' : ''}></label></div>
+    </div>`;
+  $('#copy-tmpl').addEventListener('click', async () => { try { await navigator.clipboard.writeText(SHORTCUT_TEMPLATE); toast('Template copied'); } catch (e) { toast('Select and copy the text above'); } });
+  $('#h-on').addEventListener('change', async e => { settings.health = e.target.checked; await saveSettings(); });
+  const enable = async () => { if (!settings.health) { settings.health = true; await saveSettings(); } };
+  $('#try-paste').addEventListener('click', async () => { await enable(); pasteFromHealth(); });
+  $('#try-sample').addEventListener('click', async () => {
+    await enable();
+    const start = new Date(Date.now() - 40 * 60000);
+    pendingIntake = parseHealthPayload(JSON.stringify({ app: 'PaceTrack', start: start.toISOString(), distance: '2.04 mi', duration: '19 min 41 s', hr: '170 BPM', indoor: 'No', sleepHours: '7 hr 12 min', rhr: '58', hrv: '42 ms' }));
+    location.hash = '#/log';
+  });
 }
 
 /* ---------- Spreadsheet: zip + xlsx reader/writer (no dependencies) ---------- */
