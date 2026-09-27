@@ -7,8 +7,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="PaceTrack">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#F4F1EA">
-<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#F4F1EA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#15171A" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
 <title>PaceTrack</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
@@ -25,7 +26,26 @@
   --serif: Fraunces, Georgia, serif;
   --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
   --tabbar: 64px;
+  --edge: #BDB6A6; --warn-text: #8A3D10; --danger: #9A2E12;
+  color-scheme: light;
 }
+:root[data-theme="dark"] {
+  --paper: #15171A; --card: #1F2226; --ink: #ECE8E0; --muted: #A39E93; --faint: #7D786E;
+  --line: #343840; --soft: #2A2E33; --field: #1A1D20; --edge: #4A4F57;
+  --blue: #79A8EC; --blue-soft: #1D3050; --orange: #F2A56E; --orange-soft: #3B2618; --warn-bg: #2D2017;
+  --warn-text: #F2B98F; --danger: #F08F72;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #15171A; --card: #1F2226; --ink: #ECE8E0; --muted: #A39E93; --faint: #7D786E;
+    --line: #343840; --soft: #2A2E33; --field: #1A1D20; --edge: #4A4F57;
+    --blue: #79A8EC; --blue-soft: #1D3050; --orange: #F2A56E; --orange-soft: #3B2618; --warn-bg: #2D2017;
+    --warn-text: #F2B98F; --danger: #F08F72;
+    color-scheme: dark;
+  }
+}
+.input::placeholder { color: var(--faint); }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.4 var(--sans); -webkit-tap-highlight-color: transparent; }
@@ -44,7 +64,7 @@ h2 { margin: 0; font: 600 15px/1.3 var(--sans); }
 .pad { padding: 16px; }
 .mono { font-family: var(--mono); }
 .label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); min-width: 0; }
-.input { height: 44px; border: 1px solid #BDB6A6; border-radius: 8px; padding: 0 10px; background: var(--card); font-size: 16px; width: 100%; min-width: 0; }
+.input { color: var(--ink); height: 44px; border: 1px solid var(--edge); border-radius: 8px; padding: 0 10px; background: var(--card); font-size: 16px; width: 100%; min-width: 0; }
 .input.soft { background: var(--field); border-color: var(--line); }
 select.input { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 16px) 19px, calc(100% - 11px) 19px; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 28px; }
 .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
@@ -55,7 +75,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .seg button { flex: 1; min-height: 40px; padding: 0 2px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); font-size: 13px; }
 .seg button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { min-height: 40px; padding: 0 12px; border-radius: 20px; border: 1px solid #BDB6A6; background: var(--card); font-size: 14px; }
+.chip { min-height: 40px; padding: 0 12px; border-radius: 20px; border: 1px solid var(--edge); background: var(--card); font-size: 14px; }
 .chip[aria-pressed="true"] { border-color: var(--orange); background: var(--orange-soft); }
 .chip.dark[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--paper); }
 .q { display: flex; flex-direction: column; gap: 6px; }
@@ -79,13 +99,13 @@ details[open] > summary .pm::before { content: '−'; }
 .dbody { padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 14px; }
 .group-name { font-size: 12px; font-weight: 600; color: var(--muted); }
 .linkbtn { align-self: flex-start; min-height: 36px; padding: 0; border: 0; background: none; color: var(--blue); font-size: 14px; }
-.note { font-size: 12px; color: #8A3D10; background: var(--warn-bg); border-radius: 8px; padding: 8px 10px; }
+.note { font-size: 12px; color: var(--warn-text); background: var(--warn-bg); border-radius: 8px; padding: 8px 10px; }
 .hint { font-size: 12px; color: var(--muted); }
 .primary { width: 100%; height: 54px; border: 0; border-radius: 12px; background: var(--ink); color: var(--paper); font-size: 16px; font-weight: 600; }
 .primary:disabled { opacity: 0.4; }
-.secondary { min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #BDB6A6; background: var(--card); font-size: 15px; }
-.danger { color: #9A2E12; }
-.err { font-size: 13px; color: #9A2E12; min-height: 18px; }
+.secondary { min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--edge); background: var(--card); font-size: 15px; }
+.danger { color: var(--danger); }
+.err { font-size: 13px; color: var(--danger); min-height: 18px; }
 .inline-add { display: grid; grid-template-columns: 1fr 90px auto; gap: 6px; align-items: end; }
 .inline-add.two { grid-template-columns: 1fr auto; }
 .toggle { display: flex; justify-content: space-between; align-items: center; min-height: 44px; font-size: 15px; gap: 12px; }
@@ -115,7 +135,7 @@ details[open] > summary .pm::before { content: '−'; }
 .srow .t { display: flex; flex-direction: column; min-width: 0; }
 .srow .t span { font-size: 12px; color: var(--muted); }
 .sec-title { font-size: 13px; font-weight: 600; color: var(--muted); margin: 18px 2px 6px; }
-.small-btn { min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid #BDB6A6; background: var(--card); font-size: 13px; flex-shrink: 0; }
+.small-btn { min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--edge); background: var(--card); font-size: 13px; flex-shrink: 0; }
 .small-btn.dark { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 .tabbar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line); display: flex; justify-content: center; padding-bottom: env(safe-area-inset-bottom, 0px); z-index: 5; }
 .tabbar a { flex: 1; max-width: 200px; height: var(--tabbar); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--faint); text-decoration: none; font-size: 11px; }
@@ -219,7 +239,13 @@ let toastTimer;
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2400); }
 
 /* ---------- Settings & lists ---------- */
-const settings = { trackTypes: false };
+const settings = { trackTypes: false, theme: 'auto' };
+function applyTheme() {
+  const t = settings.theme;
+  if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
+  const dark = t === 'dark' || (t !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+  $$('meta[name="theme-color"]').forEach(m => { m.removeAttribute('media'); m.content = dark ? '#15171A' : '#F4F1EA'; });
+}
 let routes = [], shoes = [];
 async function loadMeta() {
   Object.assign(settings, (await DB.getMeta('settings')) || {});
@@ -585,6 +611,9 @@ async function renderSettings(app) {
       <div class="srow"><span class="t">Restore<span>From a PaceTrack backup file</span></span><label class="small-btn" style="display:inline-flex;align-items:center">Choose file<input type="file" accept=".json,application/json" id="restore" class="vh"></label></div>
     </div>
 
+    <div class="sec-title">Appearance</div>
+    <div class="card pad"><div class="seg" role="group" aria-label="Appearance">${[['auto', 'Automatic'], ['light', 'Light'], ['dark', 'Dark']].map(([v, l]) => `<button type="button" data-theme-opt="${v}" aria-pressed="${settings.theme === v}">${l}</button>`).join('')}</div><div class="hint" style="margin-top:8px">Automatic follows your iPhone’s light or dark setting.</div></div>
+
     <div class="sec-title">Logging</div>
     <div class="card"><label class="srow toggle" style="margin:0"><span class="t">Track run types<span>${settings.trackTypes ? 'Pick easy, tempo, long and more when logging' : 'Off. Every run is saved as Easy.'}</span></span><input type="checkbox" id="s-types" ${settings.trackTypes ? 'checked' : ''}></label></div>
 
@@ -598,6 +627,7 @@ async function renderSettings(app) {
     <div class="card"><div class="srow"><span class="t">Delete all runs<span>Removes every run from this phone</span></span><button class="small-btn danger" id="wipe">Delete all</button></div></div>
     <p class="hint" style="margin:16px 2px">PaceTrack keeps your runs on this phone only. Nothing is sent to a server.</p>`;
 
+  $$('[data-theme-opt]').forEach(b => b.addEventListener('click', async () => { settings.theme = b.dataset.themeOpt; await saveSettings(); applyTheme(); $$('[data-theme-opt]').forEach(x => x.setAttribute('aria-pressed', x === b)); }));
   $('#s-types').addEventListener('change', async e => { settings.trackTypes = e.target.checked; await saveSettings(); renderSettings(app); });
   $('#backup').addEventListener('click', () => backup(runs));
   $('#restore').addEventListener('change', e => restore(e.target.files[0], app));
@@ -640,6 +670,8 @@ async function restore(file, app) {
 (async () => {
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
   await loadMeta();
+  applyTheme();
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
   window.addEventListener('hashchange', route);
   route();
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
