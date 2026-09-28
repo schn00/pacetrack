@@ -218,6 +218,9 @@ a.kv.rec { color: var(--ink); text-decoration: none; }
 .tmpl { margin: 0; padding: 10px; border-radius: 8px; background: var(--soft); font: 12px/1.45 var(--mono); white-space: pre-wrap; word-break: break-all; }
 .route { background: var(--soft); border-radius: 10px; }
 .health-banner { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px; background: color-mix(in srgb, #E0457B 14%, transparent); color: var(--ink); font-size: 13px; margin-bottom: 10px; }
+.when { flex-wrap: nowrap; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.when .chip { min-height: 36px; padding: 0 10px; font-size: 13px; flex-shrink: 0; }
+.when-row { gap: 8px; }
 .map-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 10px; align-items: center; border-top: 1px solid var(--soft); padding-top: 10px; }
 .map-src { display: flex; flex-direction: column; min-width: 0; }
 .map-src b { font-weight: 500; font-size: 14px; overflow-wrap: anywhere; }
@@ -319,6 +322,7 @@ function parseDuration(str) {
   return sec > 0 ? sec : null;
 }
 const fmtDur = sec => { if (!sec) return '—'; sec = Math.round(sec); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60; return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(s).padStart(2, '0'); };
+const fmtMi = r => r.miles ? r.miles.toFixed(2) : '—';
 const paceSec = r => r.pace || (r.miles && r.duration ? r.duration / r.miles : null);
 const fmtPace = r => { const p = paceSec(r); return p ? fmtDur(p) : '—'; };
 const beatsPerMile = r => r.hr && paceSec(r) ? Math.round(r.hr * paceSec(r) / 60) : null;
@@ -395,19 +399,19 @@ async function renderLog(app, existing) {
   const segHtml = (field, opts, val, multi) => `<div class="seg" role="group">${opts.map(o => `<button type="button" data-seg="${field}" data-val="${esc(o)}"${multi ? ' data-multi="1"' : ''} aria-pressed="${multi ? (val || []).includes(o) : val === o}">${esc(o)}</button>`).join('')}</div>`;
 
   app.innerHTML = `
-  <div class="head"><h1>${existing ? 'Edit run' : 'Log a run'}</h1>${existing ? `<a class="back" href="#/run/${existing.id}">Cancel</a>` : GEAR}</div>
-  ${!existing && settings.health ? `<div class="health-banner" id="health-banner" hidden><span style="flex:1"></span><button type="button" class="small-btn" id="hb-manual">Enter manually</button></div>
-  <button type="button" class="secondary" id="paste-health" style="width:100%;margin-bottom:10px;min-height:44px;display:flex;align-items:center;justify-content:center;gap:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="#E0457B" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.5-9.2C1.2 8.6 3 5 6.6 5c2 0 3.4 1.1 4.2 2.4h2.4C14 6.1 15.4 5 17.4 5 21 5 22.8 8.6 21.5 11.8 19.5 16.4 12 21 12 21z"/></svg>Paste from Apple Health</button>` : ''}
+  <div class="head"><h1>${existing ? 'Edit run' : 'Log a run'}</h1>${existing ? `<a class="back" href="#/run/${existing.id}">Cancel</a>` : `<div class="row"><button type="button" class="small-btn" id="paste-workout" style="min-height:40px;display:inline-flex;align-items:center;gap:6px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/></svg>Paste workout</button>${GEAR}</div>`}</div>
+  <div class="health-banner" id="paste-banner" hidden><span style="flex:1"></span><button type="button" class="small-btn" id="pb-clear">Clear</button></div>
   <form id="logform" class="stack" novalidate>
     <section class="card pad stack main-card">
+      ${existing ? '' : `<div class="row when-row"><span class="sub" style="flex-shrink:0">Finished</span><div class="chips when" role="group" aria-label="When did you finish">${[[0, 'Now'], [30, '30m ago'], [60, '1h ago'], [120, '2h ago'], ['x', 'Earlier']].map(([v, l]) => `<button type="button" class="chip dark" data-when="${v}" aria-pressed="${v === 0}">${l}</button>`).join('')}</div></div>`}
       <div class="row started">
         <label for="f-started">Started</label>
         <input id="f-started" class="input soft" type="datetime-local" value="${toLocalInput(startDate)}">
         ${settings.trackTypes ? `<select id="f-type" class="input soft" style="width:auto;height:38px;font-size:14px" aria-label="Run type">${TYPES.map(t => `<option${t === form.type ? ' selected' : ''}>${t}</option>`).join('')}</select>` : ''}
       </div>
       <div class="grid3">
-        <label class="label">Miles<input id="f-miles" class="input" inputmode="decimal" placeholder="0.0" value="${existing ? existing.miles : ''}"></label>
-        <label class="label">Time<input id="f-time" class="input" inputmode="numeric" placeholder="mm:ss" value="${existing ? fmtDur(existing.duration) : ''}"></label>
+        <label class="label">Miles<input id="f-miles" class="input" inputmode="decimal" placeholder="0.0" value="${existing && existing.miles ? existing.miles : ''}"></label>
+        <label class="label"><span class="row" style="justify-content:space-between;gap:4px"><span id="time-label">Time</span><button type="button" class="linkbtn" id="time-mode" style="min-height:0;font-size:12px">use pace</button></span><input id="f-time" class="input" inputmode="numeric" placeholder="mm:ss" value="${existing && existing.duration ? fmtDur(existing.duration) : ''}"></label>
         <label class="label">Avg HR<input id="f-hr" class="input" inputmode="numeric" placeholder="bpm" value="${existing && existing.hr ? existing.hr : ''}"></label>
       </div>
       <div class="hint" id="pace-line"></div>
@@ -538,14 +542,19 @@ async function autoWeather() {
     updateLogSummaries();
   } catch (e) { if (st.isConnected) st.textContent = 'Couldn’t get weather right now. Enter it yourself, or fill it later from Settings.'; }
 }
+function setStartFromWhen(delay) {
+  const ago = form._endAgo || 0;
+  $('#f-started').value = toLocalInput(new Date(Date.now() - ago * 60000 - (form.duration || 0) * 1000));
+  queueWeather(delay);
+}
 function readTimes() {
   form.miles = num($('#f-miles').value);
-  form.duration = parseDuration($('#f-time').value);
+  const tv = parseDuration($('#f-time').value);
+  if (form._paceMode) { form.pace = tv || null; form.duration = tv && form.miles ? Math.round(tv * form.miles) : null; }
+  else { form.duration = tv; form.pace = form._pastedPace && form._pastedMiles === form.miles ? form._pastedPace : null; }
   form.hr = Math.round(num($('#f-hr').value)) || null;
-  if (!form._startedTouched && form.duration && !form.id) {
-    $('#f-started').value = toLocalInput(new Date(Date.now() - form.duration * 1000));
-    queueWeather(1200);
-  }
+  if (!form._startedTouched && !form.id) setStartFromWhen(1200);
+  const bh = $('#blank-hint'); if (bh) bh.hidden = !!(form.miles || form.duration);
   const pl = $('#pace-line');
   if (form.miles && form.duration) {
     const bpm = beatsPerMile(form);
@@ -591,7 +600,22 @@ function bindLog(app, existing) {
   const f = $('#logform');
   ['#f-miles', '#f-time', '#f-hr'].forEach(s => $(s).addEventListener('input', readTimes));
   $('#f-time').addEventListener('blur', e => { const d = parseDuration(e.target.value); if (d) e.target.value = fmtDur(d); });
-  $('#f-started').addEventListener('input', () => { form._startedTouched = true; form._startedEdited = true; queueWeather(); });
+  $('#time-mode').addEventListener('click', () => {
+    form._paceMode = !form._paceMode;
+    $('#time-label').textContent = form._paceMode ? 'Pace /mi' : 'Time';
+    $('#time-mode').textContent = form._paceMode ? 'use time' : 'use pace';
+    const t = $('#f-time'); t.placeholder = form._paceMode ? 'm:ss' : 'mm:ss';
+    t.value = form._paceMode ? (form.miles && form.duration ? fmtDur(form.duration / form.miles) : '') : (form.duration ? fmtDur(form.duration) : '');
+    readTimes(); t.focus();
+  });
+  $$('[data-when]').forEach(b => b.addEventListener('click', () => {
+    $$('[data-when]').forEach(x => x.setAttribute('aria-pressed', x === b));
+    if (b.dataset.when === 'x') { form._startedTouched = true; const el = $('#f-started'); el.focus(); if (el.showPicker) try { el.showPicker(); } catch (e) {} return; }
+    form._endAgo = +b.dataset.when; form._startedTouched = false; form._startedEdited = false; setStartFromWhen(300);
+  }));
+  const pw = $('#paste-workout'); if (pw) pw.addEventListener('click', pasteWorkout);
+  const pc = $('#pb-clear'); if (pc) pc.addEventListener('click', () => route());
+  $('#f-started').addEventListener('input', () => { form._startedTouched = true; form._startedEdited = true; $$('[data-when]').forEach(x => x.setAttribute('aria-pressed', x.dataset.when === 'x')); queueWeather(); });
   $('#f-felt').addEventListener('input', e => { form.felt = +e.target.value; form._feltTouched = true; paintEffort(); });
   paintEffort();
   const ty = $('#f-type'); if (ty) ty.addEventListener('change', e => { form.type = e.target.value; });
@@ -658,17 +682,17 @@ function bindLog(app, existing) {
   f.addEventListener('submit', async e => {
     e.preventDefault(); readTimes();
     const err = $('#form-err');
-    if (!form.miles || !form.duration) { err.textContent = 'Add miles and time to save this run.'; (form.miles ? $('#f-time') : $('#f-miles')).focus(); return; }
+    const pending = !form.miles || !form.duration;
+    if (pending && existing && !existing.pending) { err.textContent = 'Add miles and time to save this run.'; (form.miles ? $('#f-time') : $('#f-miles')).focus(); return; }
     err.textContent = '';
     const started = new Date($('#f-started').value);
     const run = {
       id: form.id || uid(),
       started: (isNaN(started) ? new Date() : started).toISOString(),
-      miles: form.miles, duration: form.duration, hr: form.hr,
+      miles: form.miles || null, duration: form.duration || null, hr: form.hr, pace: form.pace || (existing && existing.miles === form.miles && existing.duration === form.duration ? existing.pace : undefined), pending: pending || undefined,
       type: form.type || 'Easy', felt: existing && existing.felt == null && !form._feltTouched ? null : form.felt,
       timeUnknown: existing && existing.timeUnknown && !form._startedEdited ? true : undefined,
-      pace: existing && existing.pace && existing.miles === form.miles && existing.duration === form.duration ? existing.pace : undefined,
-      power: existing ? existing.power : undefined, cadence: existing ? existing.cadence : undefined, notes: existing ? existing.notes : undefined,
+      power: existing ? existing.power : form.power ?? undefined, cadence: existing ? existing.cadence : form.cadence ?? undefined, notes: existing ? existing.notes : undefined,
       symptoms: form.symptoms.slice(), symptomNote: ($('#f-symnote').value || '').trim(),
       before: form.before, foodNote: ($('#f-foodnote').value || '').trim(),
       indoor: form.surface === 'Treadmill',
@@ -698,8 +722,8 @@ async function renderRuns(app) {
   const row = r => {
     const S = sc[r.id] || {}, on = cmpSel.includes(r.id);
     const inner = `<span class="main"><b>${fmtDay(r.started)}${r.indoor ? ' · Indoor' : ''}${settings.trackTypes && r.type !== 'Easy' ? ' · ' + esc(r.type) : ''}</b>
-        <span>${fmtPace(r)} /mi${r.hr ? ' · ' + r.hr + ' bpm' : ''}${r.symptoms && r.symptoms.length ? ' · <span style="color:var(--orange)">' + esc(r.symptoms[0]) + (r.symptoms.length > 1 ? ' +' + (r.symptoms.length - 1) : '') + '</span>' : ''}</span></span>
-        <span class="side"><span class="mono">${r.miles.toFixed(2)} <small style="font-size:12px;color:var(--muted)">mi</small></span>${S.label ? `<span class="${labelClass(S.label)}" style="margin-top:4px">${S.label} ${S.score}</span>` : ''}</span>`;
+        <span>${r.pending ? 'Stats fill in from your Health export' : fmtPace(r) + ' /mi'}${r.hr ? ' · ' + r.hr + ' bpm' : ''}${r.symptoms && r.symptoms.length ? ' · <span style="color:var(--orange)">' + esc(r.symptoms[0]) + (r.symptoms.length > 1 ? ' +' + (r.symptoms.length - 1) : '') + '</span>' : ''}</span></span>
+        <span class="side">${r.pending ? '<span class="lab lab-none" style="white-space:normal;text-align:right">Waiting for<br>Health data</span>' : `<span class="mono">${r.miles.toFixed(2)} <small style="font-size:12px;color:var(--muted)">mi</small></span>`}${S.label ? `<span class="${labelClass(S.label)}" style="margin-top:4px">${S.label} ${S.score}</span>` : ''}</span>`;
     return cmpMode
       ? `<button class="card run-row" data-pick="${r.id}" aria-pressed="${on}" style="width:100%;text-align:left;font:inherit;color:inherit"><span class="check${on ? ' on' : ''}">${on ? '✓' : ''}</span>${inner}</button>`
       : `<a class="card run-row" href="#/run/${r.id}">${inner}</a>`;
@@ -765,11 +789,11 @@ async function renderRun(app, id) {
     </div>` : `<div class="card pad"><div class="sub">Session score</div><div style="margin-top:4px">${bpm ? 'Scores start once you have 5 runs with heart rate.' : 'Add average heart rate to score this run.'}</div>${S.load != null ? `<div class="hint" style="margin-top:6px">Load ratio ${S.load.toFixed(2)}: ${loadWord(S.load)}</div>` : ''}</div>`;
   app.innerHTML = `
     <a class="back" href="#/runs">← Runs</a>
-    <div class="head" style="align-items:flex-end"><div><div class="sub">${fmtDay(r.started)}${r.timeUnknown ? '' : ' at ' + fmtTime(r.started)}${r.indoor ? ' · Indoor' : ''}${settings.trackTypes ? ' · ' + esc(r.type) : ''}</div><h1>${r.miles.toFixed(2)} miles</h1></div></div>
+    <div class="head" style="align-items:flex-end"><div><div class="sub">${fmtDay(r.started)}${r.timeUnknown ? '' : ' at ' + fmtTime(r.started)}${r.indoor ? ' · Indoor' : ''}${settings.trackTypes ? ' · ' + esc(r.type) : ''}</div><h1>${r.pending ? 'Run logged' : r.miles.toFixed(2) + ' miles'}</h1></div></div>
     <div class="stack">
-      ${scoreCard}
+      ${r.pending ? `<div class="card pad" style="border-color:var(--g1)"><b>Waiting for Apple Health</b><div class="sub" style="margin-top:4px">Miles, time and heart rate fill in the next time you import your Health export (Settings → Apple Health). Or tap Edit run and type them in.</div></div>` : scoreCard}
       <div class="stats">
-        <div class="card stat"><span>Time</span><b>${fmtDur(r.duration)}</b></div>
+        <div class="card stat"><span>Time</span><b>${r.duration ? fmtDur(r.duration) : '—'}</b></div>
         <div class="card stat"><span>Pace /mi</span><b>${fmtPace(r)}</b></div>
         <div class="card stat"><span>Avg HR</span><b>${r.hr || '—'}</b></div>
         <div class="card stat"><span>Beats /mi</span><b>${bpm || '—'}</b></div>
@@ -822,7 +846,7 @@ async function renderSettings(app) {
 
     <div class="sec-title">Apple Health</div>
     <div class="card">
-      <div class="srow"><span class="t">Apple Health<span>${settings.health ? 'After-run paste is on' : 'Fill runs from your watch, plus routes and elevation'}</span></span><a class="small-btn dark" href="#/health" style="display:inline-flex;align-items:center;text-decoration:none">${settings.health ? 'Open' : 'Set up'}</a></div>
+      <div class="srow"><span class="t">Apple Health<span>Fill in stats, routes and elevation from your watch</span></span><a class="small-btn dark" href="#/health" style="display:inline-flex;align-items:center;text-decoration:none">Open</a></div>
       <div class="srow"><span class="t">Home privacy zone<span>Route points this close to a run’s start and end are never saved</span></span><select class="input" id="pz" style="width:auto;height:36px;font-size:14px">${[0.1, 0.25, 0.5].map(v => `<option value="${v}"${(settings.privacyZone ?? 0.25) === v ? ' selected' : ''}>${v} mi</option>`).join('')}</select></div>
     </div>
 
@@ -849,7 +873,7 @@ async function renderSettings(app) {
     <div class="card">${routes.length ? routes.map(r => `<div class="srow"><span class="t">${esc(r.name)}<span>${r.elev ? '+' + r.elev + ' ft' : 'No elevation set'}</span></span><button class="small-btn danger" data-del-route="${r.id}">Remove</button></div>`).join('') : '<div class="srow"><span class="t"><span>Add routes from the Route list when you log a run.</span></span></div>'}</div>
 
     <div class="sec-title">Shoes</div>
-    <div class="card">${shoes.length ? shoes.map(s => `<div class="srow"><span class="t">${esc(s.name)}<span>${runs.filter(r => r.shoesId === s.id).reduce((a, r) => a + r.miles, 0).toFixed(1)} mi logged</span></span><button class="small-btn danger" data-del-shoe="${s.id}">Remove</button></div>`).join('') : '<div class="srow"><span class="t"><span>Add shoes from the Shoes list when you log a run.</span></span></div>'}</div>
+    <div class="card">${shoes.length ? shoes.map(s => `<div class="srow"><span class="t">${esc(s.name)}<span>${runs.filter(r => r.shoesId === s.id).reduce((a, r) => a + (r.miles || 0), 0).toFixed(1)} mi logged</span></span><button class="small-btn danger" data-del-shoe="${s.id}">Remove</button></div>`).join('') : '<div class="srow"><span class="t"><span>Add shoes from the Shoes list when you log a run.</span></span></div>'}</div>
 
     <div class="sec-title">Data</div>
     <div class="card"><div class="srow"><span class="t">Delete all runs<span>Removes every run from this phone</span></span><button class="small-btn danger" id="wipe">Delete all</button></div></div>
@@ -954,7 +978,7 @@ const groupKey = r => (r.indoor ? 'in' : 'out') + ':' + (settings.trackTypes ? (
 const dayNum = iso => { const d = new Date(iso); return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5); };
 
 function computeScores(allRuns) {
-  const runs = [...allRuns].sort((a, b) => a.started.localeCompare(b.started));
+  const runs = allRuns.filter(r => !r.pending).sort((a, b) => a.started.localeCompare(b.started));
   const out = {}, byGroup = {};
   runs.forEach(r => { (byGroup[groupKey(r)] = byGroup[groupKey(r)] || []).push(r); });
   const models = {};
@@ -994,7 +1018,7 @@ function computeScores(allRuns) {
     const d = dayNum(r.started);
     if (d - firstDay >= 21) {
       let acute = 0, chronic = 0, n28 = 0;
-      for (const x of runs) { const xd = dayNum(x.started); if (xd > d) break; if (xd > d - 7) acute += x.miles; if (xd > d - 28) { chronic += x.miles; n28++; } }
+      for (const x of runs) { const xd = dayNum(x.started); if (xd > d) break; if (x.pending) continue; if (xd > d - 7) acute += x.miles; if (xd > d - 28) { chronic += x.miles; n28++; } }
       if (chronic > 0 && n28 >= 4) res.load = acute / (chronic / 4);
       else if (n28 < 4) res.returning = true;
     }
@@ -1002,6 +1026,7 @@ function computeScores(allRuns) {
     const prev = group[pos - 1]; if (prev) res.prevId = prev.id;
     out[r.id] = res;
   });
+  allRuns.forEach(r => { if (r.pending) out[r.id] = { pending: true }; });
   for (const r of Object.values(out)) if (r.prevId && out[r.prevId] && out[r.prevId].score != null && r.score != null) r.vsPrev = r.score - out[r.prevId].score;
   return out;
 }
@@ -1104,7 +1129,7 @@ function records(runs, scores) {
   const scored = runs.filter(r => scores[r.id] && scores[r.id].score != null);
   return {
     best: scored.length ? scored.reduce((a, b) => scores[b.id].score > scores[a.id].score || (scores[b.id].score === scores[a.id].score && b.started > a.started) ? b : a) : null,
-    bpm: pick(withB, beatsPerMile), pace: pick(runs.filter(r => !r.indoor), paceSec), long: runs.length ? runs.reduce((a, b) => b.miles > a.miles ? b : a) : null,
+    bpm: pick(withB, beatsPerMile), pace: pick(runs.filter(r => !r.indoor && paceSec(r)), paceSec), long: runs.filter(r => r.miles).length ? runs.filter(r => r.miles).reduce((a, b) => b.miles > a.miles ? b : a) : null,
   };
 }
 
@@ -1245,7 +1270,7 @@ async function renderTrends(app) {
 
   // weekly miles + load
   const weeks = new Map();
-  R.forEach(r => { const k = weekStart(r.started).getTime(); weeks.set(k, (weeks.get(k) || 0) + r.miles); });
+  R.forEach(r => { const k = weekStart(r.started).getTime(); weeks.set(k, (weeks.get(k) || 0) + (r.miles || 0)); });
   const wk = [...weeks.entries()].sort((a, b) => a[0] - b[0]);
   const gW = goals.find(g => g.type === 'weeklyMiles');
   const H3 = 120, maxMi = Math.max(...wk.map(w => w[1]), gW ? gW.target : 0) * 1.15, bw = Math.min(26, (W - 16) / wk.length - 4);
@@ -1295,7 +1320,7 @@ async function renderCompare(app, idA, idB) {
   const elev = r => r.indoor ? null : ((r.cond && r.cond.elev) ?? ((routes.find(z => z.id === r.routeId) || {}).elev));
   const res = [
     row('Score', sx.score != null ? `<span class="${labelClass(sx.label)}">${sx.label} ${sx.score}</span>` : null, sy.score != null ? `<span class="${labelClass(sy.label)}">${sy.label} ${sy.score}</span>` : null, sx.score != null && sy.score != null && Math.abs(sx.score - sy.score) >= 10),
-    row('Miles', x.miles.toFixed(2), y.miles.toFixed(2)), row('Pace', fmtPace(x), fmtPace(y), Math.abs((paceSec(x) || 0) - (paceSec(y) || 0)) >= 20),
+    row('Miles', fmtMi(x), fmtMi(y)), row('Pace', fmtPace(x), fmtPace(y), Math.abs((paceSec(x) || 0) - (paceSec(y) || 0)) >= 20),
     row('Avg HR', x.hr, y.hr, diffNum(x.hr, y.hr, 5)), row('Beats /mi', beatsPerMile(x), beatsPerMile(y), diffNum(beatsPerMile(x), beatsPerMile(y), 60)),
     row('Effort', x.felt != null ? x.felt + '/10' : null, y.felt != null ? y.felt + '/10' : null, diffNum(x.felt, y.felt, 2)),
     row('Symptoms', (x.symptoms || []).join(', ') || 'None', (y.symptoms || []).join(', ') || 'None', (x.symptoms || []).join() !== (y.symptoms || []).join()),
@@ -1346,7 +1371,7 @@ async function savedSheet(run) {
     <div class="grab"></div>
     <div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="sub">Saved · ${fmtDay(run.started)}</div><h2 style="font:600 24px var(--serif)">${S.label ? S.label + ' session' : 'Run saved'}</h2></div>
       ${S.score != null ? `<div style="text-align:right"><div class="sub">Score</div><div class="mono" style="font-size:32px;line-height:1">${S.score}</div></div>` : ''}</div>
-    ${S.vsPrev != null ? `<div class="sub">${S.vsPrev >= 0 ? '+' : ''}${S.vsPrev} vs your previous run</div>` : S.score == null ? '<div class="sub">Scores start once you have 5 runs with heart rate.</div>' : ''}
+    ${run.pending ? '<div class="sub">Miles, time and your score fill in when you next import your Apple Health export.</div>' : S.vsPrev != null ? `<div class="sub">${S.vsPrev >= 0 ? '+' : ''}${S.vsPrev} vs your previous run</div>` : S.score == null ? '<div class="sub">Scores start once you have 5 runs with heart rate.</div>' : ''}
     ${goalBlock}${cards}${sug}
     <div class="row" style="gap:8px"><button class="secondary" style="flex:1" id="sh-view">View run</button><a class="primary" style="flex:1;display:flex;align-items:center;justify-content:center;text-decoration:none" href="#/runs" id="sh-done">Done</a></div>
   </div>`;
@@ -1392,7 +1417,7 @@ function outcomeNow(g, runs, scores) {
   const wk = weekStart(new Date()).getTime(), thisWeek = runs.filter(r => weekStart(r.started).getTime() === wk);
   if (g.type === 'score') { const s = sorted.map(r => scores[r.id] && scores[r.id].score).filter(v => v != null).slice(0, 5); return s.length ? Math.round(mean(s)) : null; }
   if (g.type === 'bpm') { const r = sorted.find(r => scores[r.id] && scores[r.id].baseline && !r.indoor); return r ? scores[r.id].baseline : null; }
-  if (g.type === 'weeklyMiles') return Math.round(thisWeek.reduce((a, r) => a + r.miles, 0) * 10) / 10;
+  if (g.type === 'weeklyMiles') return Math.round(thisWeek.reduce((a, r) => a + (r.miles || 0), 0) * 10) / 10;
   if (g.type === 'runsWeek') return thisWeek.length;
   return null;
 }
@@ -1445,7 +1470,7 @@ async function renderGoals(app) {
 async function renderNewGoal(app) {
   const runs = await DB.runs(), scores = computeScores(runs);
   const usual = outcomeNow({ type: 'bpm' }, runs, scores);
-  const weeks = new Map(); runs.forEach(r => { const k = weekStart(r.started).getTime(); weeks.set(k, (weeks.get(k) || 0) + r.miles); });
+  const weeks = new Map(); runs.forEach(r => { const k = weekStart(r.started).getTime(); weeks.set(k, (weeks.get(k) || 0) + (r.miles || 0)); });
   const avgWeek = weeks.size ? mean([...weeks.values()].slice(-8)) : 5;
   const defs = { bpm: usual ? Math.round(usual * 0.97 / 5) * 5 : 1700, weeklyMiles: Math.round(avgWeek * 1.1) || 5 };
   const item = (type) => {
@@ -1549,6 +1574,57 @@ function applyIntake(data) {
   const bn = $('#health-banner');
   bn.hidden = false;
   bn.querySelector('span').textContent = `Filled from Apple Health${data.start ? ' · started ' + data.start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : ''}${data.sleepH != null ? ' · ' + data.sleepH.toFixed(1) + ' h sleep' : ''}`;
+}
+
+/* ---------- Paste workout: Fitness Live Text or shortcut message ---------- */
+function parseWorkoutText(text) {
+  const t = String(text || '').replace(/\u202f|\u00a0/g, ' ').replace(/[’′]/g, "'").replace(/[”″]/g, '"');
+  if (/\{[\s\S]*\}/.test(t)) { try { return parseHealthPayload(t); } catch (e) {} }
+  const out = {};
+  let m = t.match(/(\d+(?:[.,]\d+)?)\s*(mi|km)\b(?!\s*\/)/i);
+  if (m) out.miles = Math.round(num(m[1]) * (/km/i.test(m[2]) ? 0.621371 : 1) * 100) / 100;
+  m = t.match(/(?:workout time|duration|total time|time)\D{0,20}?(\d{1,2}:\d{2}:\d{2})/i) || t.match(/\b(\d{1,2}:\d{2}:\d{2})\b(?!\s*[AP]M)/i);
+  if (m) out.seconds = parseDuration(m[1]);
+  else { m = t.match(/(?:workout time|duration|time)\D{0,20}?(\d{1,3}:\d{2})\b(?!\s*[AP]M)(?!\s*["'/])/i); if (m) out.seconds = parseDuration(m[1]); }
+  m = t.match(/(\d{1,2})'\s?(\d{2})"?\s*\/?\s*(mi|km)?/i);
+  if (m) { let p = +m[1] * 60 + +m[2]; if (/km/i.test(m[3] || '')) p *= 1.609344; out.pace = Math.round(p); }
+  m = t.match(/(?:avg\.?|average)\s*heart\s*rate\D{0,20}?(\d{2,3})/i) || t.match(/(\d{2,3})\s*BPM/i);
+  if (m) out.hr = +m[1];
+  m = t.match(/elevation(?:\s*gain)?\D{0,20}?([\d,]+)\s*(ft|m)\b/i) || t.match(/([\d,]+)\s*FT\b/);
+  if (m) out.elev = Math.round(num(m[1].replace(/,/g, '')) * (/^m$/i.test(m[2]) ? 3.28084 : 1));
+  m = t.match(/(\d{2,3})\s*SPM/i); if (m) out.cadence = +m[1];
+  m = t.match(/(\d{2,4})\s*W\b/); if (m) out.power = +m[1];
+  if (/indoor\s*run/i.test(t)) out.indoor = true;
+  if (!out.seconds && out.pace && out.miles) out.seconds = Math.round(out.pace * out.miles);
+  if (!out.miles && out.pace && out.seconds) out.miles = Math.round(out.seconds / out.pace * 100) / 100;
+  m = t.match(/(\d{1,2}):(\d{2})\s*([AP]M)?\s*[–—-]\s*(\d{1,2}):(\d{2})\s*([AP]M)/i);
+  if (m) {
+    const to24 = (h, ap) => ap ? (+h % 12) + (/p/i.test(ap) ? 12 : 0) : +h;
+    const d = new Date(); const dm = t.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\.?\s+(\d{1,2})\b/i);
+    if (dm) { d.setMonth('janfebmaraprmayjunjulaugsepoctnovdec'.indexOf(dm[1].toLowerCase()) / 3, +dm[2]); if (d > new Date()) d.setFullYear(d.getFullYear() - 1); }
+    else if (/yesterday/i.test(t)) d.setDate(d.getDate() - 1);
+    d.setHours(to24(m[1], m[3] || m[6]), +m[2], 0, 0); out.start = d;
+  }
+  if (!out.miles && !out.seconds && !out.hr) throw new Error('nothing found');
+  return out;
+}
+async function pasteWorkout() {
+  let text;
+  try { text = await navigator.clipboard.readText(); } catch (e) { toast('Couldn’t read the clipboard. Tap Paste when iPhone asks.'); return; }
+  let d;
+  try { d = parseWorkoutText(text); } catch (e) { toast('No workout found on the clipboard. Copy the Fitness summary text first.'); return; }
+  if (d.miles) $('#f-miles').value = d.miles;
+  if (d.seconds) { if (form._paceMode) $('#time-mode').click(); $('#f-time').value = fmtDur(d.seconds); }
+  if (d.hr) $('#f-hr').value = d.hr;
+  form._pastedPace = d.pace || null; form._pastedMiles = d.miles || null;
+  if (d.start) { $('#f-started').value = toLocalInput(d.start); form._startedTouched = true; form._startedEdited = true; $$('[data-when]').forEach(x => x.setAttribute('aria-pressed', x.dataset.when === 'x')); }
+  if (d.indoor) { form.surface = 'Treadmill'; $$('[data-seg="surface"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.val === 'Treadmill')); syncIndoor(); }
+  if (d.elev != null && !d.indoor) { form.cond.elev = d.elev; const e = $('#f-elev'); if (e) e.value = d.elev; form._condEdited.add('elev'); }
+  form.cadence = d.cadence; form.power = d.power; form.rhr = d.rhr; form.hrv = d.hrv;
+  if (d.sleepH != null) { form.before.sleep = sleepBucket(d.sleepH); $$('[data-seg="before.sleep"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.val === form.before.sleep)); }
+  readTimes(); updateLogSummaries(); queueWeather(200);
+  const parts = [d.miles && d.miles + ' mi', d.seconds && fmtDur(d.seconds), d.hr && d.hr + ' bpm', d.elev != null && '+' + d.elev + ' ft', d.start && 'started ' + d.start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })].filter(Boolean);
+  const bn = $('#paste-banner'); bn.hidden = false; bn.querySelector('span').textContent = 'Pasted: ' + parts.join(' · ') + '. Check before saving.';
 }
 
 /* ---------- Apple Health export (export.zip): routes and elevation ---------- */
@@ -1680,17 +1756,18 @@ async function renderHealthImport(app) {
       const prog = $('#hx-prog');
       const workouts = await scanWorkouts(Z, xmlName, n => { prog.textContent = `Scanning… ${(n / 1048576).toFixed(0)} MB read`; });
       const runs = await DB.runs();
-      const matches = [], fresh = [];
+      const matches = [], fresh = [], claimed = new Set();
       for (const w of workouts) {
         if (!w.miles) continue;
         const day = w.start.toDateString();
-        const m = runs.find(r => new Date(r.started).toDateString() === day && Math.abs(r.miles - w.miles) / w.miles < 0.06);
+        let m = runs.find(r => !r.pending && r.miles && new Date(r.started).toDateString() === day && Math.abs(r.miles - w.miles) / w.miles < 0.06);
+        if (!m) { const pend = runs.filter(r => r.pending && !claimed.has(r.id) && new Date(r.started).toDateString() === day).sort((a, b) => Math.abs(new Date(a.started) - w.start) - Math.abs(new Date(b.started) - w.start)); m = pend[0]; if (m) claimed.add(m.id); }
         (m ? matches : fresh).push({ w, run: m });
       }
       hx = { Z, matches, fresh, file: f };
-      const withRoute = matches.filter(x => x.w.route).length;
+      const withRoute = matches.filter(x => x.w.route).length, filled = matches.filter(x => x.run.pending).length;
       out.innerHTML = `<div class="card pad stack"><h2>Found ${workouts.length} runs in Apple Health</h2>
-        <div class="imp-stats" style="grid-template-columns:repeat(3,1fr)"><div><b class="mono">${matches.length}</b><span>match your runs</span></div><div><b class="mono">${withRoute}</b><span>with routes</span></div><div><b class="mono">${fresh.length}</b><span>not in PaceTrack</span></div></div>
+        <div class="imp-stats" style="grid-template-columns:repeat(4,1fr)"><div><b class="mono">${matches.length}</b><span>match your runs</span></div><div><b class="mono">${filled}</b><span>waiting, now filled</span></div><div><b class="mono">${withRoute}</b><span>with routes</span></div><div><b class="mono">${fresh.length}</b><span>not in PaceTrack</span></div></div>
         <div class="hint">Matched runs get a route outline, plus elevation if they don’t have it. Everything else you logged stays as it is.</div>
         ${fresh.length ? `<label class="toggle">Also add the ${fresh.length} runs that aren’t in PaceTrack<input type="checkbox" id="hx-add"></label>` : ''}
         <button class="primary" id="hx-go" ${matches.length || fresh.length ? '' : 'disabled'}>Update runs</button></div>`;
@@ -1717,6 +1794,11 @@ async function applyHealthExport() {
     const gain = w.elev != null ? w.elev : R ? R.gainFt : null;
     if (gain != null && !run.indoor && run.cond.elev == null) { run.cond.elev = gain; run.elevSource = 'health'; }
     if (R && R.points.length > 1 && !run.indoor) { run.routePts = R.points; routesN++; }
+    if (run.pending) {
+      run.miles = w.miles; run.duration = w.seconds; run.started = w.start.toISOString(); delete run.timeUnknown;
+      if (w.indoor) { run.indoor = true; run.surface = 'Treadmill'; run.routeId = ''; run.cond = {}; delete run.weatherSource; }
+      run.pending = false; run.statsSource = 'health';
+    }
     if (!run.hr && w.hr) run.hr = w.hr;
     run.updated = new Date().toISOString();
     await DB.put(run);
@@ -1726,39 +1808,24 @@ async function applyHealthExport() {
 }
 
 /* ---------- Apple Health setup guide ---------- */
-const SHORTCUT_TEMPLATE = `{"app":"PaceTrack","start":"[Start Date]","distance":"[Total Distance]","duration":"[Duration]","hr":"[Average heart rate]","indoor":"[Is Indoor]","sleepHours":"[Sleep hours]","rhr":"[Resting heart rate]","hrv":"[HRV]"}`;
 async function renderHealth(app) {
-  const last = await DB.getMeta('healthLastPaste'), lastX = await DB.getMeta('lastHealthExport');
-  const step = (n, title, body) => `<div class="card pad" style="display:flex;gap:12px"><div class="stepn">${n}</div><div class="stack" style="gap:6px;flex:1;min-width:0"><b>${title}</b>${body}</div></div>`;
-  const P = t => `<div style="font-size:14px;line-height:1.5">${t}</div>`;
+  const runs = await DB.runs(), lastX = await DB.getMeta('lastHealthExport');
+  const waiting = runs.filter(r => r.pending).length;
   app.innerHTML = `<a class="back" href="#/settings">← Settings</a><div class="head"><h1>Apple Health</h1></div>
     <div class="stack">
       <div class="card pad stack">
-        <div class="kv"><span>After-run paste</span><span>${settings.health ? (last ? 'Last used ' + new Date(last).toLocaleDateString() : 'On') : 'Not set up'}</span></div>
-        <div class="kv"><span>Health export</span><span>${lastX ? new Date(lastX.at).toLocaleDateString() + ' · ' + lastX.routes + ' routes' : 'Never'}</span></div>
-        <a class="secondary" href="#/health-import" style="color:var(--ink);display:inline-flex;align-items:center;justify-content:center;text-decoration:none">Import Health export (routes and elevation)</a>
+        <div class="kv"><span>Last export imported</span><span>${lastX ? new Date(lastX.at).toLocaleDateString() : 'Never'}</span></div>
+        <div class="kv"><span>Runs waiting for stats</span><span>${waiting}</span></div>
+        <a class="primary" href="#/health-import" style="display:flex;align-items:center;justify-content:center;text-decoration:none">Import Health export</a>
       </div>
-      <div class="sec-title" style="margin-top:6px">Set up the after-run shortcut · about 5 minutes</div>
-      <div class="hint" style="margin:-4px 2px 2px">Menu names can differ slightly between iOS versions.</div>
-      ${step(1, 'Create the shortcut', P('Open <b>Shortcuts</b> → <b>+</b> → name it <b>PaceTrack Run</b>.'))}
-      ${step(2, 'Get your latest run', P('Add <b>Find Workouts</b> (or <b>Find Health Samples</b> → Workouts). Filter Type is <b>Running</b>, sort by Start Date latest first, limit 1.') + P('Add <b>Find Health Samples</b> → Heart Rate between the workout’s start and end, then <b>Calculate Statistics</b> → Average.'))}
-      ${step(3, 'Add last night (optional)', P('Add <b>Find Health Samples</b> → Sleep (last 12 hours), and → Resting Heart Rate and Heart Rate Variability (latest 1). Sleep totals can be added up with <b>Calculate Statistics</b> → Sum.'))}
-      ${step(4, 'Build the message', P('Add a <b>Text</b> action and paste this in. Replace each [bracket] with the matching variable from the steps above (tap and hold → Select Variable). Delete any you skipped.') + `<pre class="tmpl" id="tmpl">${esc(SHORTCUT_TEMPLATE)}</pre><button class="small-btn" id="copy-tmpl" style="align-self:flex-start">Copy template</button>`)}
-      ${step(5, 'Copy and notify', P('Add <b>Copy to Clipboard</b>, then <b>Show Notification</b> with “Run copied. Open PaceTrack and tap Paste.”'))}
-      ${step(6, 'Run it automatically', P('Shortcuts → <b>Automation</b> → <b>+</b> → <b>Apple Watch Workout</b> → Ends → Running → run <b>PaceTrack Run</b>, and choose Run Immediately.') + P('No watch automation? Put the shortcut on your Home Screen and tap it after a run.'))}
-      ${step(7, 'Try it', P('Run the shortcut once (allow Health access when asked), then come back and tap the button. Or test with a sample run first.') + `<div class="row" style="flex-wrap:wrap"><button class="small-btn dark" id="try-paste">Paste from Apple Health</button><button class="small-btn" id="try-sample">Try a sample run</button></div>`)}
-      <div class="card pad"><label class="toggle" style="margin:0">Show “Paste from Apple Health” on Log a run<input type="checkbox" id="h-on" ${settings.health ? 'checked' : ''}></label></div>
+      <div class="card pad stack">
+        <h2>How it works</h2>
+        <div style="font-size:14px;line-height:1.5"><b>After a run:</b> log it in PaceTrack. Type miles, time and heart rate from the Fitness app, or leave them blank and just log effort, symptoms and Before the run.</div>
+        <div style="font-size:14px;line-height:1.5"><b>Every week or so:</b> in the Health app, tap your picture (top right) → <b>Export All Health Data</b> → <b>Save to Files</b>. Then tap Import Health export here.</div>
+        <div style="font-size:14px;line-height:1.5">Runs you left blank get miles, time, heart rate and indoor/outdoor from your watch. Every matched run gets a route outline and elevation. Anything you typed yourself stays as it is.</div>
+        <div class="hint">The export is read on this phone only. You can delete it from Files afterward.</div>
+      </div>
     </div>`;
-  $('#copy-tmpl').addEventListener('click', async () => { try { await navigator.clipboard.writeText(SHORTCUT_TEMPLATE); toast('Template copied'); } catch (e) { toast('Select and copy the text above'); } });
-  $('#h-on').addEventListener('change', async e => { settings.health = e.target.checked; await saveSettings(); });
-  const enable = async () => { if (!settings.health) { settings.health = true; await saveSettings(); } };
-  $('#try-paste').addEventListener('click', async () => { await enable(); pasteFromHealth(); });
-  $('#try-sample').addEventListener('click', async () => {
-    await enable();
-    const start = new Date(Date.now() - 40 * 60000);
-    pendingIntake = parseHealthPayload(JSON.stringify({ app: 'PaceTrack', start: start.toISOString(), distance: '2.04 mi', duration: '19 min 41 s', hr: '170 BPM', indoor: 'No', sleepHours: '7 hr 12 min', rhr: '58', hrv: '42 ms' }));
-    location.hash = '#/log';
-  });
 }
 
 /* ---------- Spreadsheet: zip + xlsx reader/writer (no dependencies) ---------- */
